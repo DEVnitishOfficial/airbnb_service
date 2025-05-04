@@ -295,3 +295,64 @@ In this way both are satisfied:
 ---
 
 
+Here is your formatted README section, with visually appealing structure and no changes to your original wording:
+
+---
+
+## 📌 Next Requirement: Adding One More Migration
+
+Suppose a new requirement came that we have to create a **rating** column in our table that will update asynchronously (eventually update, not immediately), but we would like to fetch the rating as soon as possible.
+
+---
+
+### 🛠️ Generate the Migration
+
+Run the below command to create the next migration:
+
+```
+npx sequelize-cli migration:generate --name add_rating_hotel_table
+```
+
+---
+
+### 🚀 Run Your Migration
+
+```
+npx sequelize-cli db:migrate
+```
+
+---
+
+### ⏪ Rollback Your Migration
+
+```
+npx sequelize-cli db:migrate:undo
+```
+
+---
+
+### 🧩 Adding Scripts to `package.json`
+
+In order to run the migrate and rollback multiple times easily, we have added the below script inside the `package.json`:
+
+```json
+"migrate": "sequelize-cli db:migrate",
+"rollback": "sequelize-cli db:migrate:undo"
+```
+
+---
+
+### 💡 Now Whenever We Run:
+
+* `npm run migrate`
+* `npm run rollback`
+
+It will run the corresponding migrate and rollback script.
+
+---
+
+Let me know if you'd like to combine this section with the previous formatted README!
+
+
+
+
