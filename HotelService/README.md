@@ -268,3 +268,30 @@ Database migration helps us to **sequentially update our RDBMS**.
 If we feel like our previous version of the database was more stable and useful according to our business requirement, then we can **revert back easily** to that version.
 
 ---
+
+# 🛠️ Fixing Error
+
+Initially we have setup the migration in JS but we are writing our backend in TypeScript so all our core logic should be in TypeScript, so now we have to configure our migration in TypeScript.
+
+So, to convert the migration file in TypeScript we have created a **`sequelize.config.js`** file inside the `config` folder. It contains below code:
+
+```js
+require('ts-node/register');
+const config = require('./db.config.js');
+module.exports = config;
+```
+
+The above file `sequelize.config.js` is loaded into the `.sequelizerc` file from where the Sequelize CLI reads the configuration of Sequelize ORM.
+From here, although we have written our migrations in TypeScript but
+
+**`require('ts-node/register')`** this line converts our TypeScript code into JS code then it will be executed.
+In this way both are satisfied:
+
+* we as a programmer write the code in TypeScript
+* Sequelize also understands the code in JS
+
+**In short, when we run migration command (npx sequelize-cli db:migrate) to run this command sequelize look into the .sequelizerc and inside here there is config (config: path.resolve("./src/config/sequelize.config.js")) and inside the config(sequelize.config.js) first line is (require('ts-node/register'); which converts on the go our typescript code to js code and then sequelize easily execute js code.)**
+
+---
+
+
