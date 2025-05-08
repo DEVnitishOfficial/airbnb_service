@@ -292,10 +292,7 @@ In this way both are satisfied:
 
 **In short, when we run migration command (npx sequelize-cli db:migrate) to run this command sequelize look into the .sequelizerc and inside here there is config (config: path.resolve("./src/config/sequelize.config.js")) and inside the config(sequelize.config.js) first line is (require('ts-node/register'); which converts on the go our typescript code to js code and then sequelize easily execute js code.)**
 
----
 
-
-Here is your formatted README section, with visually appealing structure and no changes to your original wording:
 
 ---
 
@@ -348,10 +345,162 @@ In order to run the migrate and rollback multiple times easily, we have added th
 * `npm run rollback`
 
 It will run the corresponding migrate and rollback script.
+Rollback will not move us to the previous table rather it move us to the previous migration.
+
+
+
+Here is your **formatted README** section with better visual structure, using **your exact words** without any modification:
 
 ---
 
-Let me know if you'd like to combine this section with the previous formatted README!
+## 🧩 Next Step: CREATING DATABASE MODEL AND CONNECTING TO MYSQL DATABASE TABLE
+
+So the next step is to creating the end-to-end API by which people will interact.
+
+For this we will write the **models layer**.
+
+> **So here model will ensure that whatever schema using the database, with respect to the same schema, we will have `class` available in JavaScript/TypeScript, using which we can interact with database indirectly.**
+
+And this class will represent our database in the JavaScript/TypeScript code.
+
+In our JS/TS code we don't want to interact with the SQL tables directly — we interact with classes, functions, and interfaces. That's why here, to interact with the database, we are going to create models by which we can interact with database **indirectly in object-oriented fashion**.
+
+---
+
+### 📝 To write models, created file `hotel.ts` inside the `models`
+
+```ts
+class Hotel extends Model<InferAttributes <Hotel>, InferCreationAttributes<Hotel> > {
+    declare id: CreationOptional<number>;
+    declare name: string;
+    declare address: string;
+    declare location: string;
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
+    declare rating: number;
+    declare ratingCount: number;
+} 
+```
+
+Inside the `hotel.ts` above code is written. Explanation of `declare` and `InferAttributes` is written inside the `hotel.ts` and **Notion TypeScript notes**.
+
+---
+
+### ❓ Now here we have a question:
+
+We have defined the `Hotel` TypeScript class by extending the Sequelize `Model`,
+but **how our MySQL database will map to the hotel table?**
+
+To map the `Hotel` TypeScript model with our MySQL database table, we have the **`init` function**.
+This `init` function takes **two parameters**:
+
+1. ✅ **First parameter** maps the `Hotel` model properties to the database `"hotels"` table columns like (`id`, `name`, `address`, `location`).
+2. ✅ **Second parameter** has key `"tablename"` in which we provide our table name as value.
+   It also has key `"sequelize"` in which we provide all the configuration of our MySQL database like the `"dialect"`, `"username"`, `"password"`, `"database name"` etc.
+3. ✅ To see all these, go inside the `hotel.ts` and `sequelize.ts` file inside the `models` folder.
+
+---
+
+### ✅ Now almost I have solved our problems of database connection and mapping with the `hotel` table in our database successfully.
+
+---
+
+### 🧪 Now we have to insert data into the tables — but how we will do it??
+
+* To insert data inside the table, first go inside the `server.ts` file.
+* Check the database connection using `sequelize.authenticate()` method.
+* If it is successful, then create a hotel with all defined attributes in `Hotel` model like (`id`, `name`, `address`, ...) using `Hotel.create()` method.
+
+---
+
+### 🚀 **And finally when I run `npm run dev`**,
+
+it creates new entries in the given `hotels` table of MySQL database.
+
+---
+
+### 📖 **To read the data** that we have inserted:
+
+We can use:
+
+```ts
+Hotel.findAll()
+```
+
+
+
+It will return all the created data inside the database.
+There are various commands like this we can use.
+
+---
+
+### 🔍 **Fetching Data (Read)**
+
+| Method              | Description                                                |
+| ------------------- | ---------------------------------------------------------- |
+| `findAll()`         | Returns all entries from the table.                        |
+| `findOne()`         | Returns the first record that matches the query condition. |
+| `findByPk(id)`      | Finds a record by primary key.                             |
+| `findOrCreate()`    | Looks for a record, and creates it if it doesn’t exist.    |
+| `findAndCountAll()` | Returns data with the total count — useful for pagination. |
+
+---
+
+### 🆕 **Creating Data (Insert)**
+
+| Method               | Description                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| `create(data)`       | Creates a new record in the table.                               |
+| `bulkCreate(data[])` | Inserts multiple records in one go (array of objects).           |
+| `build(data)`        | Creates an instance but doesn’t save to DB unless you `.save()`. |
+
+---
+
+### ✏️ **Updating Data**
+
+| Method                    | Description                                                     |
+| ------------------------- | --------------------------------------------------------------- |
+| `update(values, options)` | Updates one or more records matching the condition.             |
+| `set()`                   | Updates values on an instance (must call `.save()` after this). |
+| `save()`                  | Persists changes made to a built instance or updated values.    |
+
+---
+
+### ❌ **Deleting Data**
+
+| Method               | Description                                             |
+| -------------------- | ------------------------------------------------------- |
+| `destroy(options)`   | Deletes records matching the condition.                 |
+| `instance.destroy()` | Deletes the specific record (used on instance objects). |
+
+---
+
+### 🔁 **Reloading / Refreshing**
+
+| Method      | Description                                 |
+| ----------- | ------------------------------------------- |
+| `reload()`  | Reloads the instance data from the DB.      |
+| `restore()` | Used with soft deletes to restore a record. |
+
+---
+
+### 🧠 **Other Useful Methods**
+
+| Method                   | Description                                           |
+| ------------------------ | ----------------------------------------------------- |
+| `count()`                | Returns the number of records matching the condition. |
+| `increment('field', {})` | Increments a numeric field value.                     |
+| `decrement('field', {})` | Decrements a numeric field value.                     |
+| `aggregate()`            | Runs SQL aggregate functions like `SUM`, `AVG`, etc.  |
+| `max('column') / min()`  | Returns maximum or minimum value from a column.       |
+
+---
+
+
+
+
+
+
 
 
 
