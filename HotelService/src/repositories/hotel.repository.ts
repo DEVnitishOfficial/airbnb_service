@@ -1,5 +1,6 @@
 // Repository layer is just a layer that is used to interact with the database. It makes code more consistent,robust,extensiable, maintainable and predictable.
 
+import { log } from "console";
 import logger from "../config/logger.config";
 import Hotel from "../db/models/hotel";
 import { createHotelDto } from "../dto/hotel.dto";
@@ -25,4 +26,14 @@ export async function getHotelById(id:number){
         throw new NotFoundError(`Hotel with id ${id} not found`)
     }
     return hotel;
+}
+export async function getAllHotel(){
+    console.log(`Fetching all hotels started`);
+    const hotels = await Hotel.findAll();
+    logger.info(`Fetching all hotels completed`,hotels);
+    if(!hotels){
+        logger.error(`Hotels not found`);
+        throw new NotFoundError(`Hotels not found`)
+    }
+    return hotels;
 }

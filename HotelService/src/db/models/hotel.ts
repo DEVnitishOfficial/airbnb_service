@@ -58,7 +58,7 @@ Hotel.init({
     ratingCount: {
         type: 'number',
         defaultValue: null,
-    }
+    },
 }, {
     tableName: 'hotels', // Specify the table name in the database from which the model will be mapped to. In this case, it is "hotels".
     sequelize: sequelize, // pass the database credentials to the sequelize instance

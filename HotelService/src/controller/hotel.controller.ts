@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { createHotelService, getHotelByIdService } from "../services/hotel.service";
+import { createHotelService, getAllHotelService, getHotelByIdService } from "../services/hotel.service";
 
 export async function createHotelHandler(req: Request, res: Response, next: NextFunction) {
     try {
@@ -44,3 +44,38 @@ export async function getHotelByIdHandler(req: Request, res: Response, next: Nex
         });
     }
 }
+
+export async function getAllHotelsHandler(req: Request, res: Response, next: NextFunction) {
+    try {
+        // Call the service layer to get all hotels
+        const allHotelResponse = await getAllHotelService();
+        // Send a success response with the list of hotels
+        res.status(200).json({  
+            success: true,
+            message: "Hotels fetched successfully",
+            data: allHotelResponse,
+        });
+        
+    } catch (error: any) {
+        // Handle errors and send an error response
+        res.status(500).json({ 
+            success: false,
+            message: "Something went wrong while fetching the hotels",
+            Error: error.message,
+            data: null,
+        });
+    }
+
+}  
+
+export async function updateHotelHandler(req: Request, res: Response, next: NextFunction) {
+    res.status(501)
+}
+
+export async function deleteHotelHandler(req: Request, res: Response, next: NextFunction) {
+    res.status(501)
+}
+export async function getHotelByLocationHandler(req: Request, res: Response, next: NextFunction) {
+    res.status(501)
+}
+
