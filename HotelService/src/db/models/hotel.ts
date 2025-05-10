@@ -20,8 +20,8 @@ class Hotel extends Model<InferAttributes<Hotel>, InferCreationAttributes<Hotel>
     declare location: string;
     declare createdAt: CreationOptional<Date>;
     declare updatedAt: CreationOptional<Date>;
-    declare rating: number;
-    declare ratingCount: number;
+    declare rating?: number;
+    declare ratingCount?: number;
 }
 
 Hotel.init({
@@ -53,11 +53,11 @@ Hotel.init({
     },
     rating: {
         type: 'decimal',
-        defaultValue: 0,
+        defaultValue: null,
     },
     ratingCount: {
         type: 'number',
-        defaultValue: 0,
+        defaultValue: null,
     }
 }, {
     tableName: 'hotels', // Specify the table name in the database from which the model will be mapped to. In this case, it is "hotels".
