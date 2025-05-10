@@ -496,58 +496,124 @@ There are various commands like this we can use.
 
 ---
 
+---
 
-## NEXT STEP : WRITING END TO END API'S ##
+## ✅ NEXT STEP: WRITING END-TO-END API'S
 
-**APPROACH : BOTTOM-UP APPROACH**
+---
 
-```
-The bottom-up approach in API writing focuses on building from the ground up, starting with the smallest, most fundamental components and gradually integrating them to create a functional and well-structured API
-```
+### 🔁 **APPROACH: BOTTOM-UP APPROACH**
 
-**REPOSITORY LAYER**
+> *The bottom-up approach in API writing focuses on building from the ground up, starting with the smallest, most fundamental components and gradually integrating them to create a functional and well-structured API.*
 
-For this we will follow bottom up approach i.e first write the repository layer and inside the repository layer we write the db interaction.
+---
 
-so created a repository folder in src and inside that created hotel.repository.ts file in which we have to write the db interation.
+### 🗂️ REPOSITORY LAYER
 
-we have written two db interaction in repository layer first is createHotel and second getHotelById,
+* We're following the **bottom-up approach**, so we begin with the **repository layer**.
+* Created a `repository` folder inside `src`, and within it, a `hotel.repository.ts` file where we write all the **DB interactions**.
 
-*DEFINING DTO*
+✅ **Implemented Methods**:
 
-In the first one 'createHotel' ---> in order to create hotel we have to defined the hotel data so in this case that data is coming from the postman/client(browser) and we know for data transfer object we always define a "dto" so created a dto folder and inside that defined hotelData datatype i.e "createHotelDto" and used createHotelDto to provide the datatype to the hotelData.
+1. `createHotel`
+2. `getHotelById`
 
-And similarly defined "getHotelById" using findByPk with custom error message by utilizing "NotFoundError" from utils custom error message.
+---
 
-**SERVICE LAYER**
+### 🧾 DEFINING DTO
 
-Now, we have completed our Repository Layer and repository layer is consumed by the service layer and inside the service layer all the business logics are there, so now i will define the service layer.
+* In `createHotel` → we need hotel data that comes from the **Postman/client (browser)**.
 
-** Created folder of services inside src folder and inside the service created file hotel.service.ts
+* For **Data Transfer Object**, we define a DTO:
 
-Inside the services we have for the time being created two services 1.createHotelService, 2.getHotelByIdService and third one i have creted that i have commented out, to show that any business logic we can write here for example : 
+  * Created a `dto` folder.
+  * Defined the `hotelData` datatype as `createHotelDto`.
+  * Used `createHotelDto` to type `hotelData`.
 
-suppose there is a list of blacklisted hotels with their address so whenever anyone try to create a hotel with that blacklisted hotel address then it will give them a BadRequestError and they are not able to create the hotel so it's a pure business logic similir to this one can implement various logic according to our business requirement, this type of folder stracture help us seperate of concern or one responsibility principle.
+* Similarly, defined `getHotelById` using `findByPk()` with a **custom error message** via `NotFoundError` from the `utils` (custom error module).
 
-**CONTROLLER**
+---
 
-** Now our service layer will be utilised by the controller layer so inside the controller i have created hotel.controller.ts file.
+### ⚙️ SERVICE LAYER
 
-**ROUTER**
+* Repository layer is now consumed by the **service layer** which handles all **business logic**.
 
-** Now the controller will be utilised by the router layer so inside routers/v1 created 'hotel.router.ts file.
+🛠️ Setup:
 
-And finally inside the index.router.ts file we have configured the initial routing point like if someone comes to http://localhost:3000/api/v1/hotels then it will be redirected to the hotelRouter then according to routes it's send to the partucular handler like on home '/' with post request, it will be send to 'createHotelHandler' then createHotelService then creatHotel function and then Hotel model where we have defined our database model that how or in which format  data will be created in our mysql database and saved.
+* Created a `services` folder inside `src`.
+* Created `hotel.service.ts` file.
 
-**VALIDATON LAYER**
+✅ **Implemented Services**:
 
-** Now everything is done now we have to write the validation layer.
-This validation layer is required because, we have ensure that whatever data is coming to our server that's are in required format so that we not face issue further in storing and retrieving the data from our database.
+1. `createHotelService`
+2. `getHotelByIdService`
 
-**TESTING**
+💡 Example of Business Logic (Commented Out):
 
-Now after validation layer we have to test our api's that we have just created for this i have created a collection in postman named "airbnb" and inside this tested "createHotel" and "getHotelByid" endpoint also created variable in postman which avoid the repetation of url "http://localhost:3001/api/v1"
+* Suppose there's a list of blacklisted hotels by address.
+* If someone tries to create a hotel using a blacklisted address:
 
+  * It throws a `BadRequestError` and prevents creation.
+* This is an example of **pure business logic** — this folder structure supports **separation of concerns** and **Single Responsibility Principle (SRP)**.
+
+---
+
+### 🧭 CONTROLLER
+
+* The **controller layer** now utilizes the service layer.
+* Created `hotel.controller.ts` inside the `controllers` folder.
+
+---
+
+### 🧩 ROUTER
+
+* The **controller** is then used by the **router**.
+* Created `hotel.router.ts` inside `routers/v1`.
+
+🔁 Routing Setup:
+
+* In `index.router.ts`, initial routing is configured.
+* If someone visits:
+  `http://localhost:3000/api/v1/hotels`
+  → it's redirected to `hotelRouter`
+  → on route `'/'` with a **POST** request → it goes to:
+
+  * `createHotelHandler` →
+  * `createHotelService` →
+  * `createHotel()` →
+  * finally to `Hotel` model (where DB schema is defined)
+  * then saved to the MySQL database.
+
+---
+
+### ✅ VALIDATION LAYER
+
+* Now we implement the **validation layer**.
+* This layer ensures:
+
+  * Incoming data is in the correct format.
+  * Prevents future issues in storing/retrieving data.
+
+---
+
+### 🧪 TESTING
+
+* After the validation layer, we **test our APIs**.
+
+🧰 Tools Used:
+
+* Created a **Postman collection** named `"airbnb"`.
+* Tested:
+
+  * `createHotel` endpoint
+  * `getHotelById` endpoint
+
+📌 Optimization:
+
+* Defined a **Postman variable** to avoid repeating the base URL:
+  `http://localhost:3001/api/v1`
+
+---
 
 
 
