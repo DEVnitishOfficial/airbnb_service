@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { createHotelService, getAllHotelService, getHotelByIdService } from "../services/hotel.service";
+import { createHotelService, getAllHotelService, getHotelByIdService, updateHotelService } from "../services/hotel.service";
+import { deleteHotelById } from "../repositories/hotel.repository";
 
 export async function createHotelHandler(req: Request, res: Response, next: NextFunction) {
     try {
@@ -69,13 +70,44 @@ export async function getAllHotelsHandler(req: Request, res: Response, next: Nex
 }  
 
 export async function updateHotelHandler(req: Request, res: Response, next: NextFunction) {
-    res.status(501)
+    try{
+        // Call the service layer to update a hotel
+        const updateHotelResponse = await updateHotelService(Number(req.params.id), req.body); 
+        // Send a success response with the updated hotel data
+        res.status(200).json({  
+            success: true,
+            message: "Hotel updated successfully",
+            data: updateHotelResponse,
+        });
+    }catch (error: any) {
+        // Handle errors and send an error response
+        res.status(500).json({ 
+            success: false,
+            message: "Something went wrong while updating the hotel",
+            Error: error.message,
+            data: null,
+        });
+    }
 }
 
 export async function deleteHotelHandler(req: Request, res: Response, next: NextFunction) {
-    res.status(501)
-}
-export async function getHotelByLocationHandler(req: Request, res: Response, next: NextFunction) {
-    res.status(501)
+    try {
+        // Call the service layer to delete a hotel
+        const deleteHotelResponse = await deleteHotelById(Number(req.params.id)); 
+        // Send a success response with the deleted hotel data
+        res.status(200).json({  
+            success: true,
+            message: "Hotel deleted successfully",
+            data: deleteHotelResponse,
+        });
+    } catch (error: any) {
+        // Handle errors and send an error response
+        res.status(500).json({ 
+            success: false,
+            message: "Something went wrong while deleting the hotel",
+            Error: error.message,
+            data: null,
+        });
+    }
 }
 

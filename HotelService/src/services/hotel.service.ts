@@ -1,5 +1,5 @@
-import { createHotelDto } from "../dto/hotel.dto";
-import { createHotel, getAllHotel, getHotelById } from "../repositories/hotel.repository"
+import { createHotelDto, updateHotelDto } from "../dto/hotel.dto";
+import { createHotel, deleteHotelById, getAllHotel, getHotelById, updateHotelById } from "../repositories/hotel.repository"
 import { BadRequesError } from "../utils/errors/app.error";
 
 /**  const blockListedAddresses = [
@@ -40,4 +40,14 @@ export async function getHotelByIdService(id: number) {
 export async function getAllHotelService() {
     const hotels = await getAllHotel();
     return hotels;
+}
+
+export async function updateHotelService(id: number, hotelData: updateHotelDto) {
+    const updatedHotel = await updateHotelById(id, hotelData);
+    return updatedHotel;
+}
+
+export async function deleteHotelService(id: number) {
+    const deletedHotel = await deleteHotelById(id);
+    return deletedHotel;
 }

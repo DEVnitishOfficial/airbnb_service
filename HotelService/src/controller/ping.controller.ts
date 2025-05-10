@@ -11,6 +11,5 @@ export const pingHandler =async (req:Request,res:Response,next:NextFunction) => 
     }catch(error){
         logger.error('something went wrong read the error carefully',error);
         throw new NotFoundError("File not found....")
-    }
-    
+    }   
 }
