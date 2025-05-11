@@ -617,21 +617,157 @@ There are various commands like this we can use.
 
 
 
+## 🧠 UNDERSTANDING API FLOW → `createHotel`
 
+## 🔁 REVISION
 
+At first we hit the router in Postman:
+`http://localhost:3001/api/v1/hotels` to create a hotel in MySQL database.
 
+---
 
+### 1️⃣ **Request Initiation**
 
+When we hit the above URL, our server accepts that request because we are listening on the same port that is hit by Postman or client.
+Then the first request comes to `server.ts` file to:
 
+```ts
+app.use(express.json());
+```
 
+---
 
+### 2️⃣ **Parsing Request Body**
 
+From Postman we are sending data in `req.body` with:
 
+```
+Content-Type → application/json
+```
 
+This is parsed by:
 
+```ts
+app.use(express.json());
+```
 
+and then the request moves further.
 
+---
 
+### 3️⃣ **Attaching Correlation ID**
 
+Then in the same `server.ts` file we have a middleware:
 
+```ts
+app.use(attachCorrelationIdMiddleware);
+```
 
+In this, on every request we attach a correlation ID to the request headers:
+
+```ts
+req.headers['x-correlation-id'] = correlationId
+```
+
+This helps to generate a **unique correlation ID for each request** for debugging purposes.
+
+---
+
+### 4️⃣ **Routing the Request**
+
+Next middleware:
+
+```ts
+app.use('/api/v1', v1Router);
+```
+
+* If our API starts with `/api/v1`, we move them to `v1Router` (inside `index.router.ts`)
+* Then, if the request starts with `/hotels`, it is routed to:
+  `routers/v1` → `hotel.router.ts`
+
+---
+
+### 5️⃣ **Validation Layer**
+
+After the routing layer, it checks:
+
+* If there's **nothing written after** `/hotels`
+* It is a **POST** request
+
+Then the request is sent to the validation layer:
+
+```ts
+validateRequestBody(hotelSchema)
+```
+
+* Here we have `validateRequestBody` function which takes `hotelSchema`
+* `hotelSchema` is a **Zod schema** which validates the required and optional entries in the database that we are going to create
+
+Then we pass this hotel Zod schema to `validateRequestBody`.
+This function simply takes:
+
+* The Zod schema
+* `req.body`
+  → and parses it using the hotel Zod schema.
+  If it is successfully parsed, then it calls the `next()` function.
+
+Also, here you can see the same correlation ID because the request is the same.
+
+---
+
+### 6️⃣ **Controller Layer**
+
+After completing the middleware function, the request moves to:
+
+```ts
+createHotelHandler
+```
+
+We go inside:
+`src/controller/hotel.controller.ts`
+Here we simply take the `req.body` and call the:
+
+```ts
+createHotelService
+```
+
+---
+
+### 7️⃣ **Service Layer**
+
+Now we move to:
+`/src/services/hotel.service.ts`
+
+Here we write our **business logic**, but for now we're simply creating the hotel.
+So we take the `hotelData` and call the:
+
+```ts
+createHotel
+```
+
+(from repository layer)
+
+---
+
+### 8️⃣ **Repository Layer**
+
+We move to:
+`/src/repositories/hotel.repository.ts`
+
+Here in the **repository layer**, we take the `Hotel` model which is the schema representation of our MySQL database in TypeScript — which defines how our database entries look like.
+
+Then, using the **Sequelize `create()` method**, we make entries inside our MySQL database — because we already have `hotelData` that is coming from Postman.
+
+---
+
+✅ After successfully creating the hotel:
+
+* We return from the **repository layer** to the **service layer**
+* Then return from **service** to the **controller**
+* From **controller**, we return the response back to the **client/Postman**
+
+---
+
+**That's it.**
+
+*Added http-status-codes for enhancing readibility of the code.*

@@ -1,13 +1,14 @@
 import { NextFunction, Request, Response } from "express";
 import { createHotelService, getAllHotelService, getHotelByIdService, updateHotelService } from "../services/hotel.service";
 import { deleteHotelById } from "../repositories/hotel.repository";
+import { StatusCodes } from "http-status-codes";
 
 export async function createHotelHandler(req: Request, res: Response, next: NextFunction) {
     try {
         // Call the service layer to create a hotel
         const hotelResponse = await createHotelService(req.body); 
         // Send a success response with the created hotel data
-        res.status(201).json({  
+        res.status(StatusCodes.CREATED).json({  
             success: true,
             message: "Hotel created successfully",
             data: hotelResponse,
@@ -15,7 +16,7 @@ export async function createHotelHandler(req: Request, res: Response, next: Next
         
     } catch (error: any) {
         // Handle errors and send an error response
-        res.status(500).json({ 
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ 
             success: false,
             message: "Something went wrong while creating the hotelService",
             Error: error.message,
@@ -25,52 +26,29 @@ export async function createHotelHandler(req: Request, res: Response, next: Next
 }
 
 export async function getHotelByIdHandler(req: Request, res: Response, next: NextFunction) {
-    try {
         // Call the service layer to get a hotel by ID
         const hotelResponse = await getHotelByIdService(Number(req.params.id)); 
         // Send a success response with the hotel data
-        res.status(200).json({  
+        res.status(StatusCodes.OK).json({  
             success: true,
             message: "Hotel fetched successfully",
             data: hotelResponse,
         });
-        
-    } catch (error: any) {
-        // Handle errors and send an error response
-        res.status(500).json({ 
-            success: false,
-            message: "Something went wrong while fetching the hotel",
-            Error: error.message,
-            data: null,
-        });
-    }
 }
 
 export async function getAllHotelsHandler(req: Request, res: Response, next: NextFunction) {
-    try {
         // Call the service layer to get all hotels
         const allHotelResponse = await getAllHotelService();
         // Send a success response with the list of hotels
-        res.status(200).json({  
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({  
             success: true,
             message: "Hotels fetched successfully",
             data: allHotelResponse,
         });
-        
-    } catch (error: any) {
-        // Handle errors and send an error response
-        res.status(500).json({ 
-            success: false,
-            message: "Something went wrong while fetching the hotels",
-            Error: error.message,
-            data: null,
-        });
-    }
 
 }  
 
 export async function updateHotelHandler(req: Request, res: Response, next: NextFunction) {
-    try{
         // Call the service layer to update a hotel
         const updateHotelResponse = await updateHotelService(Number(req.params.id), req.body); 
         // Send a success response with the updated hotel data
@@ -79,19 +57,9 @@ export async function updateHotelHandler(req: Request, res: Response, next: Next
             message: "Hotel updated successfully",
             data: updateHotelResponse,
         });
-    }catch (error: any) {
-        // Handle errors and send an error response
-        res.status(500).json({ 
-            success: false,
-            message: "Something went wrong while updating the hotel",
-            Error: error.message,
-            data: null,
-        });
-    }
 }
 
 export async function deleteHotelHandler(req: Request, res: Response, next: NextFunction) {
-    try {
         // Call the service layer to delete a hotel
         const deleteHotelResponse = await deleteHotelById(Number(req.params.id)); 
         // Send a success response with the deleted hotel data
@@ -100,14 +68,5 @@ export async function deleteHotelHandler(req: Request, res: Response, next: Next
             message: "Hotel deleted successfully",
             data: deleteHotelResponse,
         });
-    } catch (error: any) {
-        // Handle errors and send an error response
-        res.status(500).json({ 
-            success: false,
-            message: "Something went wrong while deleting the hotel",
-            Error: error.message,
-            data: null,
-        });
-    }
 }
 
