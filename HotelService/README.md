@@ -772,47 +772,92 @@ Then, using the **Sequelize `create()` method**, we make entries inside our MySQ
 
 *Added http-status-codes for enhancing readibility of the code.*
 
-## SOFT DELETING DATA 
+Here is your formatted **README** content for the soft deletion logic using Sequelize:
 
-*Sequelize has built in soft deletion properties called Paranoid when we perform then it is marked as true(paranoid:true) and when really wants to delete then perform user force:true but we are not going to use it because it is native to sequelize and in other places might not work.
+---
 
+## 🧹 Next Step : Soft Deleting Data
 
-In a real world project data is not deleting, actually they are disabled because for any organisation data is very important so here we will see how to soft delte the data.
+Sequelize has a built-in soft deletion feature called `paranoid`. When enabled (`paranoid: true`), deleted records are not removed from the database but are instead marked with a timestamp in a special column. However, we are **not** going to use Sequelize's native `paranoid` functionality, as it may not work consistently across all parts of a real-world application.
 
-**Approach**
-At first we will add property in our hotels table named 'deleted_at' by default it will be null but if 'deleted_at' have some property like 'timestamp' then it will be considered as deleted.
+---
 
-**Remember i said it is considered as deleted(soft delete) not actually deleted(hard delete) from the mysql database but user feel like the data has been deleted but actually it's not this concept is called *tombStone* in databases.
+### 💡 Real-World Insight
 
-so to execute it first i have to create a new migration i  run the below command
+In real-world projects, data is rarely **hard deleted**. Instead, it is typically **disabled** or **hidden** from the user interface while still being retained in the database for auditing or recovery. This practice is crucial for data integrity and traceability.
 
-```
+This concept is known as a **tombstone** — meaning the record still exists in the database, but is treated as deleted when it has a timestamp in a specific column.
+
+---
+
+### 🛠️ Our Approach
+
+We’ll implement **manual soft deletion** using a `deleted_at` column in the `hotels` table:
+
+* **By default**: `deleted_at` will be `null`.
+* **When soft deleted**: `deleted_at` will contain a `timestamp`, indicating that the record is no longer active.
+
+---
+
+### 🧱 Step 1: Create a Migration
+
+Generate a migration to add the `deleted_at` column:
+
+```bash
 npx sequelize-cli migration:generate --name add-deleted-at-to-hotels
 ```
 
-```javascript
+Then update the migration file:
+
+```ts
 module.exports = {
-  async up (queryInterface:QueryInterface) {
-    await queryInterface.addColumn('hotels','deleted_at',{
-      type : DataTypes.DATE,
-      allowNull : true,
-      defaultValue : null,
-    })
+  async up (queryInterface: QueryInterface) {
+    await queryInterface.addColumn('hotels', 'deleted_at', {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: null,
+    });
   },
 
-  async down (queryInterface:QueryInterface) {
-    await queryInterface.removeColumn('hotels','deleted_at')
+  async down (queryInterface: QueryInterface) {
+    await queryInterface.removeColumn('hotels', 'deleted_at');
   }
 };
 ```
 
-In this migration added a deleted_at column in the hotels table using 'addColumn' and to rollback used 'removeColumn';
+* `addColumn`: Adds the `deleted_at` column to the `hotels` table.
+* `removeColumn`: Removes the column if the migration is rolled back.
 
+---
 
-Then run the migration  using *npm run migration* which adds deleted_at column in hotels table.
+### 🚀 Step 2: Run the Migration
 
-After that updated the typescript hotel models and then write the softDeleteHotel in repository layer, service layer, controller layer and finally registered in routing layer which hits the soft and hard delete route.
+```bash
+npm run migration
+```
 
+This command applies the migration and updates the schema by adding a `deleted_at` column in the `hotels` table.
 
+---
+
+### 🏗️ Step 3: Update Codebase
+
+After the database change:
+
+1. Update the TypeScript **Hotel model** to include the `deleted_at` property.
+2. Implement `softDeleteHotel` functionality:
+
+   * Repository Layer
+   * Service Layer
+   * Controller Layer
+   * Routing Layer
+
+This flow allows the API to **soft delete** hotels by updating the `deleted_at` field rather than removing the row from the database.
+
+---
+
+✅ Now your application supports soft deletion in a way that's flexible, database-agnostic, and easy to maintain.
+
+Would you like help with sample code for the `softDeleteHotel` logic as well?
 
 
