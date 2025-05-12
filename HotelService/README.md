@@ -856,8 +856,5 @@ This flow allows the API to **soft delete** hotels by updating the `deleted_at` 
 
 ---
 
-✅ Now your application supports soft deletion in a way that's flexible, database-agnostic, and easy to maintain.
-
-Would you like help with sample code for the `softDeleteHotel` logic as well?
 
 
