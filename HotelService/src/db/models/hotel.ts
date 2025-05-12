@@ -6,6 +6,10 @@
 // What is declare keyword ???
 // when we are using class then generally we define property inside the constructor but here we are extending the sequelize Model and make our own Hotel class and added extra properties(id,name,address,location,rating...) and we have not use like(this.id=id, this.name=name....)etc. so here using the declare keyword we are saying to the ts-compiler that the given properties(id,name,location,rating....etc) exist and will be provided by the sequelize but i am not assigning it here.
 
+// What is inferAttributes and InferCreationAttributes ???
+//InferAttributes<Hotel> automatically infers all attributes (columns) of the Hotel model as they exist in the database.
+
+//InferCreationAttributes<Hotel> infers only the attributes needed when creating a new Hotel instance, respecting CreationOptional.
 
 // ***declare keyword is used to declare variables, properties, or functions without providing an implementation.***
 
@@ -20,6 +24,7 @@ class Hotel extends Model<InferAttributes<Hotel>, InferCreationAttributes<Hotel>
     declare location: string;
     declare createdAt: CreationOptional<Date>;
     declare updatedAt: CreationOptional<Date>;
+    declare deletedAt: CreationOptional<Date | null>;
     declare rating?: number;
     declare ratingCount?: number;
 }
@@ -50,6 +55,10 @@ Hotel.init({
     updatedAt: {
         type: 'date',
         defaultValue: new Date(),
+    },
+    deletedAt: {
+        type: 'date',
+        defaultValue: null,
     },
     rating: {
         type: 'decimal',

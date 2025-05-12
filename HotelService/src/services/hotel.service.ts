@@ -1,5 +1,5 @@
 import { createHotelDto, updateHotelDto } from "../dto/hotel.dto";
-import { createHotel, deleteHotelById, getAllHotel, getHotelById, updateHotelById } from "../repositories/hotel.repository"
+import { allSoftDeletedHotels, createHotel, getAllHotel, getHotelById, hardDeleteHotelById, restoreSoftDeletedHotelById, softDeleteHotelById, updateHotelById } from "../repositories/hotel.repository"
 import { BadRequesError } from "../utils/errors/app.error";
 
 /**  const blockListedAddresses = [
@@ -47,7 +47,22 @@ export async function updateHotelService(id: number, hotelData: updateHotelDto) 
     return updatedHotel;
 }
 
-export async function deleteHotelService(id: number) {
-    const deletedHotel = await deleteHotelById(id);
+export async function softDeleteHotelService(id: number) {
+    const deletedHotel = await softDeleteHotelById(id);
     return deletedHotel;
+}
+
+export async function hardDeleteHotelService(id: number) {
+    const deletedHotel = await hardDeleteHotelById(id);
+    return deletedHotel;
+}
+
+export async function allSoftDeletedHotelService(){
+    const deletedHotels = await allSoftDeletedHotels()
+    return deletedHotels;
+}
+
+export async function restoreSoftDeletedHotelByIdService(id:number){
+    const deletedHotels = await restoreSoftDeletedHotelById(id)
+    return deletedHotels;
 }
