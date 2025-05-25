@@ -772,7 +772,6 @@ Then, using the **Sequelize `create()` method**, we make entries inside our MySQ
 
 *Added http-status-codes for enhancing readibility of the code.*
 
-Here is your formatted **README** content for the soft deletion logic using Sequelize:
 
 ---
 
