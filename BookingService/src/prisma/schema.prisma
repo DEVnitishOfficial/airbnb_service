@@ -1,0 +1,33 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+// A generator determines which assets are created when you run the prisma generate command.
+// When Prisma says “assets,” it means the code and tooling (like the Prisma Client) that get automatically created in the file system based on your schema
+
+generator client {
+  provider = "prisma-client-js" //prisma-client-js: Generates Prisma Client into node_modules
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model booking{
+  id                Int   @id    @default(autoincrement())
+  userId            Int
+  hotelId           Int
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  bookingAmount     Int
+  status            BookingStatus
+  totalGuests       Int
+}
+enum BookingStatus{
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
