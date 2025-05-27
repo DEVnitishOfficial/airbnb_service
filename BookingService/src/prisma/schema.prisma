@@ -16,15 +16,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model booking{
-  id                Int   @id    @default(autoincrement())
+model Booking{
+  id                Int   @id         @default(autoincrement())
   userId            Int
   hotelId           Int
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
   bookingAmount     Int
-  status            BookingStatus
+  status            BookingStatus     @default(PENDING)
   totalGuests       Int
+  IdempotencyKeyId Int? @unique
+  IdempotencyKey     idempotencyKey? @relation(fields: [IdempotencyKeyId], references: [id])
+}
+model idempotencyKey {
+  id                Int              @id @default(autoincrement())
+  key               Int              @unique
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  booking           Booking?
 }
 enum BookingStatus{
   PENDING
