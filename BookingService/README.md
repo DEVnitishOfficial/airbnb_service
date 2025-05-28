@@ -143,16 +143,35 @@ Once migrations are complete, you can use Prisma Client to interact with your `a
 * Prisma schema is defined in a single file by default but can now be split into **multiple files**.
 * Designed to support **scalable deployment**, including hosting the booking service on a separate machine.
 ---
-Now everything is in good state now we have to query the database, in order to query the database we have already installed the prisma client. To handle the query we have to create the instance of the prisma client.
 
-Inside the Prisma create a file ---> client.ts Inside the client.ts created instance of prsma client see below code
+# Prisma Integration and Booking Flow Setup
 
+This project uses **Prisma** as the ORM to interact with the database. Below are the steps and explanations for setting up Prisma and implementing a **Booking** flow using an **idempotency key** to avoid duplicate bookings.
+
+---
+
+## 🛠️ Prisma Client Setup
+
+To query the database using Prisma, we need to create an instance of the Prisma Client.
+
+### Step 1: Create Prisma Client Instance
+
+Create a file `client.ts` inside the `prisma` folder with the following code:
+
+```ts
+// prisma/client.ts
 import { PrismaClient } from "@prisma/client";
 
 export default new PrismaClient();
+```
 
-* If you remember in sequelize orm we are creating class and extending the model of sequelize suppose if we have create a table named 'Hotel' then we extend the sequelize model and define the property of the Hotel and their respective types like below one
+---
 
+## 🔁 Sequelize vs Prisma
+
+In **Sequelize**, you typically define models by extending the `Model` class. For example:
+
+```ts
 class Hotel extends Model<InferAttributes<Hotel>, InferCreationAttributes<Hotel>> {
     declare id: CreationOptional<number>;
     declare name: string;
@@ -170,29 +189,118 @@ Hotel.init({
         allowNull: false,
     },
 });
+```
 
+### 🆕 In Prisma
 
-So all the above stuff whatever we were doing in the sequelize we don't have to do it in the prisma, here there is something called "Generated types" which generate types for us using the model that we have defined in schema.prisma file, Nothing we have to do manually.
+You **do not need to manually define model classes**. Prisma generates types automatically based on the `schema.prisma` file.
 
-For this use the command "npx prisma generate" in src folder, after executing this command, it reads two files 1. .evn 2. schema.prisma and generated a prisma client in node_modules. And now finally we can start using the prisma client and querying to the database.
+Run the following command to generate the Prisma client:
 
-So now whenever we need types then prisma client will provides us the types that we have defined in the schema.prisma like if we need the type of "Booking", "BookingStatus"
+```bash
+npx prisma generate
+```
 
-Now i have created a folder named "repositories" inside this "booking.ts" file.
-Then created "services" folder inside this we have booking.service.ts file.
+This reads:
 
-## Create Booking
-Now in order to create booking we need an idempotent key so that we can create a unique booking and avoid to duplicate booking.
+* `.env`
+* `schema.prisma`
 
-For this i have to create a model
-we can keep the booking id as idempotent key because bookingId is also going to be unique but here we will use the UUID.
+and generates the Prisma client in the `node_modules` folder.
 
-Now, when we are going to create a pending booking, on that time we are also going to create a idempotency key in service layer, and this idempotency key will be the nothing but the simple uuid, and this idempotencey key will be used in complete flow.
+You can now use types like `Booking`, `BookingStatus` directly from the Prisma client.
 
-To generate the uuid, install the npm package 'npm i uuid'
+---
 
-Since we have added the Idempotency table in terms of mysql or model in terms of prisma so we have to create a new migration so i have run the migration using below command
+## 📁 Folder Structure
+
+We have created the following structure:
+
+```
+src/
+├── prisma/
+│   └── client.ts
+├── repositories/
+│   └── booking.ts
+├── services/
+│   └── booking.service.ts
+```
+
+---
+
+## 🧾 Create Booking with Idempotency
+
+To avoid duplicate bookings, we use an **idempotency key**, which ensures each booking request is uniquely handled.
+
+### 🔑 What is an Idempotency Key?
+
+* A unique key (UUID) generated when a booking is initiated.
+* Used throughout the complete booking flow to ensure the request is not duplicated.
+
+### 🧬 How to Generate UUID
+
+Install the `uuid` package:
+
+```bash
+npm install uuid
+```
+
+Generate the UUID inside the service layer when creating a pending booking.
+
+---
+
+## 🧱 Add Idempotency Table (Model)
+
+Since we added a new model `Idempotency` in Prisma, we need to create a new migration.
+
+Run the following command:
 
 ```bash
 npx prisma migrate dev --name added_idempotency_key
 ```
+
+This will:
+
+* Apply the changes in `schema.prisma`
+* Update the database schema
+* Generate necessary client updates
+---
+
+## Setting up Idempotency key based API
+
+In order to generate the idempotency key we need some utility function.
+
+So in the utils--->Helpers folder created a file named "generateIdempotencyKey" which will generate a unique string, we keep it seperate because may be in future if we want to change the implementation then this function will be helpful.
+
+Here we can observe on things that the 'idempotencyKey' model is very similar to the booking model so all the repository function for idempotencyKey can implement in the booking repository. 
+
+In the idempotencyKey model we have added a "finalized" property which will be a boolean and by default it's false, purpose of this finalized property is to, confirming the value of *finalized* is true, if it is true it means idempotencyKey completed their full lifecycle, and a successful booking has been created. if the same idempotency key came for booking again then we don't have to process the query or create a new booking, we can just return the existing booking.
+
+**Ways to create idempotencyKey, booking and then connecting it**
+1. Approach One : 
+ First approach is to create "Booking" and then create "idempotencyKey", this will be sequential and will take time, because here first db call will create booking and second db call will create idempotencyKey and inside the idempotency key booking instance will be added. Here if the booking is created then only we can create the idempotency key.
+
+ 2. Approach Two : 
+ In the second approach first we will create a *booking* which will be in the pending state and parallely we create a instance of idempotencyKey, currently we will have no booking and in the seperate request we will add booking instance to the idempotency key which will confirm the booking. In this approach we will get idempotency key earlier and if we want we can make update request asynchronous and send back response to the user, in this way user will get fast or quick response.Here one problem may occur like while we are doing the asynchronous update it may fail, so in our backend system we can re-try to update till 2-3 attemtp.
+
+ Here approach 2 looks good and scalable, but here we can go with anyone so the simplest one we will choose the first approach where first we will create a booking and then idempotency key.
+
+ **Working with two tables(making relationship b/w tables)**
+
+Since we have two model/table now so to create a booking we need booking and idempotency key both, so we have to create a relationship between these two.
+
+To make the relationships beteen the models we have to change something from prisma.schema
+
+Previously we were doing one-to-one relationship still we will do one-to-one relationship but here i want to make the booking table clean, so we will establish this relationship from idempotency table
+
+since we make changes in our model(schem.prisma file) so we have to migrate database by following command : 
+npx prisma migrate dev --name Added_relationship_for_booking_to_idmpotency_key
+
+Now whenever we have to create a booking then we will use BookingCreateInput function it has ----> userId: number;
+          hotelId: number;
+          createdAt?: Date | string;
+          updatedAt?: Date | string;
+          bookingAmount: number;
+          status?: $Enums.BookingStatus;
+          totalGuests: number;
+          idempotencyKey?:Prisma.IdempotencyKeyCreateNestedOneWithoutBookingInput

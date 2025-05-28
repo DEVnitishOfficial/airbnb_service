@@ -32,6 +32,17 @@ export class NotFoundError implements AppError{
         }
     }
 } 
+export class BadRequestError implements AppError{
+    statusCode: number;
+    message: string;
+    name: string;
+
+    constructor(message:string){
+        this.statusCode = 400;
+        this.name = "BadRequestError";
+        this.message = message;
+    }
+}
 export class UnauthorizedError implements AppError{
     statusCode: number;
     message: string;

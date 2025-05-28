@@ -25,15 +25,19 @@ model Booking{
   bookingAmount     Int
   status            BookingStatus     @default(PENDING)
   totalGuests       Int
-  IdempotencyKeyId Int? @unique
-  IdempotencyKey     idempotencyKey? @relation(fields: [IdempotencyKeyId], references: [id])
+  idempotencyKey    IdempotencyKey? // idempotencyKey is a virtual field that references the IdempotencyKey model, that's why it will not appear in the database.
+  // Here idempotency key references the IdempotencyKey model which will provide a unique key for each booking request to ensure idempotency.
 }
-model idempotencyKey {
+model IdempotencyKey {
   id                Int              @id @default(autoincrement())
-  key               Int              @unique
+  key               String           @unique
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
-  booking           Booking?
+  finalized         Boolean          @default(false) // if it's true, it means the idempotency key has completed their full lifecycle, and a successful booking has been created. if the same idempotency key came for booking then we don't have to process the query or create a new booking, we can just return the existing booking.
+  bookingId         Int              @unique // it's a foreign key that used in making actual relationship in db, that's why it will appear in the database.
+  booking           Booking?         @relation(fields: [bookingId], references: [id]) // booking is a virtual field that references the Booking model to make a relationship, that's why it will not appear in the database.
+  // The bookingId field is a foreign key that references the Booking model, allowing us to link the idempotency key to a specific booking.
+  // Here, relation is like booking shows ---> Booking.id, from Booking model, and bookingId is a foreign key that references the Booking model.
 }
 enum BookingStatus{
   PENDING
