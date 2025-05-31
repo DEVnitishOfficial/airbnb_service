@@ -304,3 +304,124 @@ Now whenever we have to create a booking then we will use BookingCreateInput fun
           status?: $Enums.BookingStatus;
           totalGuests: number;
           idempotencyKey?:Prisma.IdempotencyKeyCreateNestedOneWithoutBookingInput
+
+
+---
+
+# ✅ Solving Concurrency Problem in `confirmBookingService`
+
+```ts
+export async function confirmBookingService(idempotencyKey: string) {
+    const idempotencyKeyData = await getIdemPotencyKey(idempotencyKey);
+    if (!idempotencyKeyData) {
+        throw new NotFoundError("Idempotency key not found");
+    }
+    if (idempotencyKeyData.finalized) {
+        throw new BadRequestError("Booking already finalized");
+    }
+    const booking = await confirmBooking(idempotencyKeyData.bookingId);
+    await finalizeIdempotencyKey(idempotencyKey);
+    return booking;
+}
+```
+
+---
+
+## 🧠 Problem
+
+The problem lies in the above function. Suppose a user created their booking and now wants to confirm it. If, by mistake or in a frustrating situation (e.g. application not responding due to network issues), the user sends **two requests very quickly (in milliseconds)**, they almost run in parallel:
+
+* First request gets the idempotency key.
+* Context switches to second request, which also gets the same key and **finalizes** the booking.
+* Context switches back to the first request, which now tries to finalize the booking **again**.
+
+This causes unnecessary or duplicate operations, since the booking was already confirmed by the second request.
+
+---
+
+## 🛠️ Solution
+
+To prevent this:
+
+1. **Wrap the entire `confirmBookingService` in a single transaction** – for rollback if any operation fails.
+2. **Put a pessimistic lock (`SELECT ... FOR UPDATE`)** on the `getIdemPotencyKey`, so only one request proceeds, and the rest are blocked until the first completes.
+
+---
+
+## ❓ Questions
+
+### 1. How to wrap all operations in one transaction?
+
+Since we are using **Prisma ORM**, Prisma provides **interactive transactions** where we pass an async callback into `$transaction`.
+
+#### What is `$transaction`?
+
+* `$transaction([])` is an API provided by Prisma.
+* It allows us to **run multiple operations as a single atomic operation** – if any step fails, the entire transaction is rolled back.
+
+#### Notes:
+
+* Inside `$transaction`, we can wrap all related operations.
+* The callback receives a parameter `tx`, which is a scoped instance of `PrismaClient`.
+* Use `tx` just like `prismaClient`, but all operations will be transactional.
+* **If any step fails, everything is rolled back.**
+
+### ✅ Code Example – Wrapping in Transaction
+
+```ts
+export async function confirmBookingService(idempotencyKey: string) {
+    return await PrismaClient.$transaction(async (tx) => {
+        const idempotencyKeyData = await getIdemPotencyKeyWithLock(tx, idempotencyKey);
+        if (!idempotencyKeyData) {
+            throw new NotFoundError("Idempotency key not found");
+        }
+        if (idempotencyKeyData.finalized) {
+            throw new BadRequestError("Booking already finalized");
+        }
+        const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
+        await finalizeIdempotencyKey(tx, idempotencyKey);
+        return booking;
+    });
+}
+```
+
+---
+
+### 2. How to put lock on the `idempotencyKey`?
+
+Since we’ve wrapped our operations in a transaction and have the `tx` instance, we can use SQL's **pessimistic locking** with `SELECT ... FOR UPDATE`.
+
+#### Implementation:
+
+* Use raw SQL with Prisma's `tx.$queryRaw`.
+* Validate the key to ensure it is in UUID format.
+* Use **parameterized queries** to avoid SQL injection.
+* The row matching the `idempotencyKey` will be locked for that transaction.
+
+### ✅ Code Example – Locking on Idempotency Key
+
+```ts
+export async function getIdemPotencyKeyWithLock(tx: Prisma.TransactionClient, key: string) {
+    if (!isValidUUID(key)) {
+        throw new BadRequestError("Invalid idempotency key format");
+    }
+
+    const idempotencyKey: Array<IdempotencyKey> = await tx.$queryRaw(
+        Prisma.raw(`SELECT * FROM IdempotencyKey WHERE idemKey = '${key}' FOR UPDATE;`)
+    );
+
+    console.log("Idempotency key with lock:", idempotencyKey);
+
+    if (!idempotencyKey || idempotencyKey.length === 0) {
+        throw new BadRequestError("Idempotency key not found");
+    }
+
+    return idempotencyKey[0];
+}
+```
+
+---
+
+> ✅ This solution ensures **only one request proceeds** when multiple parallel requests are made. All other requests are either blocked or rejected once the booking is already confirmed.
+
+---

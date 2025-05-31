@@ -1,11 +1,12 @@
 import { CreateBookingDTO } from "../dto/booking.dto";
-import { confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKey } from "../repositories/booking.repository";
+import { confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock } from "../repositories/booking.repository";
 import { BadRequestError, NotFoundError } from "../utils/errors/app.error";
 import { generateIdempotencyKey } from "../utils/helpers/generateIdempotencyKey";
+import PrismaClient from "../prisma/client";
 
-export async function createBookingService( createBookingDTO: CreateBookingDTO){
+export async function createBookingService(createBookingDTO: CreateBookingDTO) {
     const booking = await createBooking({
-        userId : createBookingDTO.userId,
+        userId: createBookingDTO.userId,
         hotelId: createBookingDTO.hotelId,
         bookingAmount: createBookingDTO.bookingAmount,
         totalGuests: createBookingDTO.totalGuests,
@@ -20,15 +21,18 @@ export async function createBookingService( createBookingDTO: CreateBookingDTO){
     }
 }
 export async function confirmBookingService(idempotencyKey: string) {
-    // This function will be used to finalize the booking after payment is confirmed
-    const idempotencyKeyData = await getIdemPotencyKey(idempotencyKey);
-    if (!idempotencyKeyData) {
-        throw new NotFoundError("Idempotency key not found");
-    }
-    if (idempotencyKeyData.finalized) {
-        throw new BadRequestError("Booking already finalized");
-    }
-    const booking = await confirmBooking(idempotencyKeyData.bookingId);
-    await finalizeIdempotencyKey(idempotencyKey);
-    return booking;
+
+    return await PrismaClient.$transaction(async (tx) => {
+        // Check if the idempotency key exists and is not finalized
+        const idempotencyKeyData = await getIdemPotencyKeyWithLock(tx, idempotencyKey);
+        if (!idempotencyKeyData) {
+            throw new NotFoundError("Idempotency key not found");
+        }
+        if (idempotencyKeyData.finalized) {
+            throw new BadRequestError("Booking already finalized");
+        }
+        const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
+        await finalizeIdempotencyKey(tx,idempotencyKey);
+        return booking;
+    });
 }
