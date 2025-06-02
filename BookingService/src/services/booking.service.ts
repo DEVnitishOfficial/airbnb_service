@@ -1,23 +1,34 @@
 import { CreateBookingDTO } from "../dto/booking.dto";
 import { confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock } from "../repositories/booking.repository";
-import { BadRequestError, NotFoundError } from "../utils/errors/app.error";
+import { BadRequestError, internalServerError, NotFoundError } from "../utils/errors/app.error";
 import { generateIdempotencyKey } from "../utils/helpers/generateIdempotencyKey";
 import PrismaClient from "../prisma/client";
+import { serverConfig } from "../config";
+import { redlock } from "../config/redis.config";
 
 export async function createBookingService(createBookingDTO: CreateBookingDTO) {
-    const booking = await createBooking({
-        userId: createBookingDTO.userId,
-        hotelId: createBookingDTO.hotelId,
-        bookingAmount: createBookingDTO.bookingAmount,
-        totalGuests: createBookingDTO.totalGuests,
-    });
+    const ttl = serverConfig.LOCK_TTL;
+    const bookingResource = `booking:${createBookingDTO.hotelId}`;
 
-    const idempotencyKey = generateIdempotencyKey();
-    await createIdempotencyKey(idempotencyKey, booking.id);
+    try {
+        await redlock.acquire([bookingResource], ttl);
+        const booking = await createBooking({
+            userId: createBookingDTO.userId,
+            hotelId: createBookingDTO.hotelId,
+            bookingAmount: createBookingDTO.bookingAmount,
+            totalGuests: createBookingDTO.totalGuests,
+        });
 
-    return {
-        bookingId: booking.id,
-        idempotencyKey: idempotencyKey
+        const idempotencyKey = generateIdempotencyKey();
+        await createIdempotencyKey(idempotencyKey, booking.id);
+
+        return {
+            bookingId: booking.id,
+            idempotencyKey: idempotencyKey
+        }
+
+    } catch (error) {
+        throw new internalServerError("Failed to acquire lock for booking resource");
     }
 }
 export async function confirmBookingService(idempotencyKey: string) {
@@ -32,7 +43,7 @@ export async function confirmBookingService(idempotencyKey: string) {
             throw new BadRequestError("Booking already finalized");
         }
         const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
-        await finalizeIdempotencyKey(tx,idempotencyKey);
+        await finalizeIdempotencyKey(tx, idempotencyKey);
         return booking;
     });
 }

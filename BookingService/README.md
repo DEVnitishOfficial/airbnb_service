@@ -425,3 +425,110 @@ export async function getIdemPotencyKeyWithLock(tx: Prisma.TransactionClient, ke
 > ✅ This solution ensures **only one request proceeds** when multiple parallel requests are made. All other requests are either blocked or rejected once the booking is already confirmed.
 
 ---
+
+# 🔒 Solving the Concurrency Booking Problem
+
+When two different users try to book the **same hotel at the same time**, we need to prevent **race conditions** that could lead to **double bookings**.
+
+To handle this concurrency issue, we use a **distributed locking mechanism** with **Redis** and **Redlock**.
+
+---
+
+## ✅ Problem Statement
+
+In a microservices environment (like hotel booking), multiple instances of the same service might receive concurrent requests. To ensure **only one user** can book a hotel room at any given time, we use a **distributed lock** on the booking resource (hotel ID).
+
+---
+
+## 🚀 Technologies Used
+
+* [`ioredis`](https://github.com/luin/ioredis) – Redis client for Node.js
+* [`redlock`](https://github.com/mike-marcacci/node-redlock) – Implements Redlock algorithm for distributed locks
+
+---
+
+## 📦 Installation
+
+```bash
+npm install ioredis
+npm install redlock
+```
+
+---
+
+## ⚙️ Redis Configuration (`config/redis.config.ts`)
+
+We create a Redis client and a Redlock instance, then export both to use across the application.
+
+```ts
+import IORedis from 'ioredis';
+import Redlock from 'redlock';
+import { serverConfig } from '.';
+
+export const redisClient = new IORedis(serverConfig.REDIS_SERVER_URL);
+
+export const redlock = new Redlock([redisClient], {
+    driftFactor: 0.01,        // Compensation for Redis TTL drift
+    retryCount: 10,           // Retry 10 times before giving up
+    retryDelay: 200,          // Wait 200ms between retries
+    retryJitter: 200,         // Add randomness to retry to avoid stampede
+});
+```
+
+---
+
+## 🔐 Locking Implementation in Booking Service (`booking.service.ts`)
+
+We use `redlock.acquire` to put a lock on a hotel using its ID, ensuring only one request can proceed with the booking process at a time.
+
+```ts
+export async function createBookingService(createBookingDTO: CreateBookingDTO) {
+    const ttl = serverConfig.LOCK_TTL;
+    const bookingResource = `booking:${createBookingDTO.hotelId}`;
+
+    try {
+        // Acquire a lock on the hotel to prevent concurrent booking
+        await redlock.acquire([bookingResource], ttl);
+
+        // Proceed with booking if lock is acquired
+        const booking = await createBooking({
+            userId: createBookingDTO.userId,
+            hotelId: createBookingDTO.hotelId,
+            bookingAmount: createBookingDTO.bookingAmount,
+            totalGuests: createBookingDTO.totalGuests,
+        });
+
+        // Generate idempotency key to prevent duplicate operations
+        const idempotencyKey = generateIdempotencyKey();
+        await createIdempotencyKey(idempotencyKey, booking.id);
+
+        return {
+            bookingId: booking.id,
+            idempotencyKey: idempotencyKey
+        };
+
+    } catch (error) {
+        throw new internalServerError("Failed to acquire lock for booking resource");
+    }
+}
+```
+
+---
+
+## ⏱️ How TTL Works
+
+* **TTL (Time to Live)** is passed as the second argument to `redlock.acquire`.
+* It defines how long the lock is held.
+* If the booking process doesn't complete within the TTL window, the lock **automatically expires**, allowing others to try again.
+
+---
+
+## 🎯 Result
+
+This approach ensures:
+
+* Only one user can book a specific hotel at a time.
+* Other requests will retry or fail gracefully.
+* Prevents race conditions in a distributed system.
+
+---
