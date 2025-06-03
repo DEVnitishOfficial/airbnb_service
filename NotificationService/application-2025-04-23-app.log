@@ -1,0 +1,4 @@
+{"level":"info","message":"press Ctrl + C to stop the server","timestamp":"04:23:2025 20:04:44","correlationId":"Unknown-error-while-creating-correlation-id","data":{"name":"dev-server"}}
+{"level":"info","message":"validation the request body log-first","timestamp":"04:23:2025 20:04:01","correlationId":"28ed8ea0-8c05-4234-b83c-38f429af9dfb","data":{}}
+{"level":"info","message":"request body is validated succcessfully log-second","timestamp":"04:23:2025 20:04:02","correlationId":"28ed8ea0-8c05-4234-b83c-38f429af9dfb","data":{}}
+{"level":"info","message":"message received successfully","timestamp":"04:23:2025 20:04:03","correlationId":"28ed8ea0-8c05-4234-b83c-38f429af9dfb","data":{}}

@@ -51,17 +51,6 @@ export async function getBookingById(bookingId: number) {
     return booking;
 }
 
-// export async function changeBookingStatus(bookingId: number, status: Prisma.EnumBookingStatusFieldUpdateOperationsInput) {
-//     const booking = await PrismaClient.booking.update({
-//         where: {
-//             id: bookingId
-//         },
-//         data: {
-//             status: status
-//         }
-//     })
-//     return booking;
-// }
 
 export async function confirmBooking(tx: Prisma.TransactionClient, bookingId: number) {
     const booking = await tx.booking.update({
