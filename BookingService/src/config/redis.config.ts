@@ -2,8 +2,30 @@ import IORedis from 'ioredis';
 import Redlock from 'redlock';
 import { serverConfig } from '.';
 
-export const redisClient = new IORedis(serverConfig.REDIS_SERVER_URL);// providing the redis server url from the config file to the IORedis client
-export const redlock = new Redlock([redisClient], {
+
+export function connectToRedis() {
+    try {
+        let connection:IORedis;
+        
+        return ()=> {
+            if(!connection){
+                connection = new IORedis(serverConfig.REDIS_SERVER_URL);
+                return connection;
+            }
+            return connection;
+        }
+       
+
+    } catch (error) {
+        console.error("Error connecting to Redis:", error);
+        throw error;
+    }
+}
+
+export const getRedisConnObject = connectToRedis();
+
+
+export const redlock = new Redlock([getRedisConnObject()], {
     driftFactor: 0.01, // here the meaning of drift factor is the percentage of time that the lock can drift(extending lock duration to syncronize all the node suppose the lock TTL is 10 seconds and the driftFactor is 0.01 (1%), the extended lock duration will be 10.1 seconds. ) before it is considered expired
     retryCount: 10, // number of times to retry acquiring the lock
     retryDelay: 200, // here the meaning of retry delay is the time in ms to wait before retrying to acquire the lock

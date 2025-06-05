@@ -532,3 +532,68 @@ This approach ensures:
 * Prevents race conditions in a distributed system.
 
 ---
+
+# 📬 Notification Service Setup
+
+In the **NotificationService**, the **worker is ready to consume/process jobs**. From the **BookingService**, we need to add jobs to the **Redis queue** using the `bullmq` `Queue`. It’s crucial that the **queue name** matches exactly, because the **worker listens to a specific queue name** — if the names differ, the worker will not process the job.
+
+---
+
+## 📁 Folder Structure Overview
+
+### 1. `queues/`
+
+Contains the `mailerQueue` instance created using `bullmq`'s `Queue` class.
+
+### 2. `producer/`
+
+Uses `mailerQueue` to add jobs to the `"email-producer"` queue with the appropriate payload.
+
+### 3. `dto/`
+
+Defines the shape/type of the incoming request payload using a `NotificationDTO`.
+
+### 4. `server.ts` (for testing)
+
+Used to test the setup by sending a sample job to the queue.
+
+---
+
+## 🔄 How the Microservices Work Together (BookingService ↔ NotificationService)
+
+### ✅ Redis as the Communication Bridge
+
+* The **BookingService** acts as the **producer**. It schedules a job using `bullmq.Queue` into the **Redis queue** with the queue name `"email-producer"`.
+
+* The **NotificationService** acts as the **consumer/worker**. It listens to the Redis queue named `"email-producer"` and processes jobs as they arrive.
+
+### 🔁 Event Flow
+
+1. **BookingService** pushes a job to Redis:
+
+   ```ts
+   mailerQueue.add("email-producer", payload)
+   ```
+
+2. **NotificationService's** worker is continuously polling Redis:
+
+   ```ts
+   const worker = new Worker("email-producer", async (job) => { ... })
+   ```
+
+3. When a job is found in the queue:
+
+   * It is fetched by the worker
+   * Processed based on the job payload
+
+### ☑️ Why This Works
+
+* Both services connect to the **same Redis instance** (same host and port)
+* Both use the **same queue name** (`"email-producer"`)
+* Therefore, they are effectively **communicating via Redis**, even though they are **separate microservices**
+
+> 🔄 This model is **loosely coupled and scalable**, making it a reliable choice for microservice communication.
+
+---
+
+

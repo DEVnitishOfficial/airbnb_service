@@ -27,17 +27,17 @@ app.listen(serverConfig.PORT, () => {
     setupEmailWorker();
     logger.info("Email worker setup completed");
 
-    const sampleNotification : NotificationDTO = {
-        to: "sample",
-        subject: "Sample Subject",
-        templateId: "sample-template",
-        params: {
-            name: "Nitish official",
-            orderId: "12345",
-            message: "This is a sample notification message."
+    // const sampleNotification : NotificationDTO = {
+    //     to: "sample",
+    //     subject: "Sample Subject",
+    //     templateId: "sample-template",
+    //     params: {
+    //         name: "Nitish official",
+    //         orderId: "12345",
+    //         message: "This is a sample notification message."
 
-        }
-    };
-    addEmailToQueue(sampleNotification)
+    //     }
+    // };
+    // addEmailToQueue(sampleNotification)
     logger.info("Sample email added to queue");
 })
