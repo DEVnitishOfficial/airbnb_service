@@ -21,23 +21,23 @@ app.use('/api/v2', v2Router);
 
 app.use(genericErrorHandler);
 
-app.listen(serverConfig.PORT, () => {
+app.listen(serverConfig.PORT, async() => {
     console.log(`server is listening at  http://localhost:${serverConfig.PORT}`)
     logger.info("press Ctrl + C to stop the server", { "name": "dev-server" })
     setupEmailWorker();
     logger.info("Email worker setup completed");
 
-    // const sampleNotification : NotificationDTO = {
-    //     to: "sample",
-    //     subject: "Sample Subject",
-    //     templateId: "sample-template",
-    //     params: {
-    //         name: "Nitish official",
-    //         orderId: "12345",
-    //         message: "This is a sample notification message."
+    
 
-    //     }
-    // };
-    // addEmailToQueue(sampleNotification)
+    addEmailToQueue({
+        to: "",// nitish.naroun123@gmail.com
+        subject: "Email testing from NotificationService",
+        templateId: "welcome",
+        params: {
+            name: "Nitish official",
+            appName:"cultfit-app",
+            supportEmail:"support.cult-fit@gmail.com"
+        }
+    })
     logger.info("Sample email added to queue");
 })

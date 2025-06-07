@@ -166,3 +166,35 @@ const sampleNotification : NotificationDTO = {
     addEmailToQueue(sampleNotification)
 ```
 
+# Setting up the email
+Till so far our setup is that jobs are produces by the producer from the BookingService and that job is processed in NotificationService by the processor, also till now we are sending the payload from the server file manually but now we have to setup a proper email template and required field according the the NotificationDTO like here we have 
+```ts
+export interface NotificationDTO {
+    to: string; // Email address of the recipient
+    subject: string; // Subject of the email    
+    templateId: string; // ID of the email template to be used
+    params: Record<string, any>; // Parameters to be passed to the email template
+    // here Record<string, any> represents key will be string and value may be of any type like number, string, boolean etc.
+}
+```
+In the above one there is templateId which we have to create first, so to create template we can use any templeting engine language like ejs/hadlebars so for simplicity here we will use handlebars.
+
+## Handlebars : 
+* Created a folder template inside that we have mailer folder and template.hander.ts, inside the mailer folder we will write all template like for now i have written welcom.hbs file similir to this one there may be different template file.
+
+* To read all these template file we have written code in template.handler.ts file,you can see here how asynchronous file readings are happening.
+
+
+# Configuring NodeMailer:
+Since we have already create the template that i have to sent by email now we need to setup the nodemailer so that we can send mail to the user.
+
+* inside config>mailer.config.ts i have configured the mail transpoter using nodemailer.createTransport and export it so that we can use it in other file where it is needed, visit for more detail implementation.
+
+* Used transpoter in services>mailer.service.ts with config option like to,from subject,body details, and exported sendEmail function from the service layer.
+
+* Then used sendEmail inside the processors>email.producer.ts file with necessery payload and mesage content that we want to send the end user like mail of the user sent using payload.to, subject : payload.subject and emailContent as the body of the mail.
+
+* And finally from the server.ts file called addEmailToQueue and pass the required payload and it successfully sent email to the given email address.
+
+
+
