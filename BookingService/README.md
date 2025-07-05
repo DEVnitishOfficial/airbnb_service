@@ -46,6 +46,12 @@ This service handles **booking-related functionalities** of the Airbnb system us
 
 ---
 
+If in case you deleted your db and created new one then run the below command to sync you all table in the new db.
+
+run the command from the prisma file other wise you will see "prisma.schema" file not found.
+npx prisma db push
+
+
 ## 🛠️ Setting Up Prisma
 
 ### Step 1: Install Prisma
@@ -283,7 +289,7 @@ In the idempotencyKey model we have added a "finalized" property which will be a
  2. Approach Two : 
  In the second approach first we will create a *booking* which will be in the pending state and parallely we create a instance of idempotencyKey, currently we will have no booking and in the seperate request we will add booking instance to the idempotency key which will confirm the booking. In this approach we will get idempotency key earlier and if we want we can make update request asynchronous and send back response to the user, in this way user will get fast or quick response.Here one problem may occur like while we are doing the asynchronous update it may fail, so in our backend system we can re-try to update till 2-3 attemtp.
 
- Here approach 2 looks good and scalable, but here we can go with anyone so the simplest one we will choose the first approach where first we will create a booking and then idempotency key.
+ Here approach 2 looks good so we will go with this one i.e on the time of create booking(pending state) we will generate the idempotency key asynchronously and in later request we will confirm the booking as well.
 
  **Working with two tables(making relationship b/w tables)**
 

@@ -10,26 +10,39 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
     const ttl = serverConfig.LOCK_TTL;
     const bookingResource = `booking:${createBookingDTO.hotelId}`;
 
-    try {
-        await redlock.acquire([bookingResource], ttl);
-        const booking = await createBooking({
+    const booking = await PrismaClient.booking.findFirst({
+        where: {
             userId: createBookingDTO.userId,
             hotelId: createBookingDTO.hotelId,
-            bookingAmount: createBookingDTO.bookingAmount,
-            totalGuests: createBookingDTO.totalGuests,
-        });
-
-        const idempotencyKey = generateIdempotencyKey();
-        await createIdempotencyKey(idempotencyKey, booking.id);
-
-        return {
-            bookingId: booking.id,
-            idempotencyKey: idempotencyKey
         }
+    })
 
-    } catch (error) {
-        throw new internalServerError("Failed to acquire lock for booking resource");
+    if (booking) {
+        throw new BadRequestError(`You have already created booking with the same userId ${createBookingDTO.userId} and hotelId : ${createBookingDTO.hotelId}`)
+    } else {
+        try {
+            await redlock.acquire([bookingResource], ttl); // here redlock takes two parameters, the first is an array of resources to lock, and the second is the TTL for the lock in milliseconds.
+            const booking = await createBooking({
+                userId: createBookingDTO.userId,
+                hotelId: createBookingDTO.hotelId,
+                bookingAmount: createBookingDTO.bookingAmount,
+                totalGuests: createBookingDTO.totalGuests,
+            });
+
+            const idempotencyKey = generateIdempotencyKey();
+            await createIdempotencyKey(idempotencyKey, booking.id);
+
+            return {
+                bookingId: booking.id,
+                idempotencyKey: idempotencyKey
+            }
+
+        } catch (error) {
+            throw new internalServerError("Failed to acquire lock for booking resource");
+        }
     }
+
+
 }
 export async function confirmBookingService(idempotencyKey: string) {
 

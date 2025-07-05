@@ -855,5 +855,8 @@ This flow allows the API to **soft delete** hotels by updating the `deleted_at` 
 
 ---
 
+Next goal may be to make available room for future 60 days always automatically.
+
+
 
 
