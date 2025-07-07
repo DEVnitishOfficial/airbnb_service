@@ -44,6 +44,7 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
 
 
 }
+
 export async function confirmBookingService(idempotencyKey: string) {
 
     return await PrismaClient.$transaction(async (tx) => {

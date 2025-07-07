@@ -1,68 +1,35 @@
 import { createHotelDto, updateHotelDto } from "../dto/hotel.dto";
-import { allSoftDeletedHotels, createHotel, getAllHotel, getHotelById, hardDeleteHotelById, restoreSoftDeletedHotelById, softDeleteHotelById, updateHotelById } from "../repositories/hotel.repository"
+import { HotelRepository} from "../repositories/hotel.repository"
 import { BadRequesError } from "../utils/errors/app.error";
 
-/**  const blockListedAddresses = [
-    "123 Main St",
-    "456 Elm St",
-    "789 Oak St"
-];
 
-export function isAddressBlockListed(address: string): boolean {
-    return blockListedAddresses.includes(address);
-}
+const hotelRepository = new HotelRepository();
 
-export async function createHotelServiceDemo(hotelData: createHotelDto) {
-    if (isAddressBlockListed(hotelData.address)) {
-        throw new BadRequesError("Address is blocklisted");
-    }
-    const hotel = await createHotel(hotelData);
-    return hotel;
-}
-*/
-
-// The above commented is a business logic that checks if the address is blocklisted then insted of creating the hotel it will throw an error.
-
-
-// The createHotelService function is a service layer function that creates a new hotel.
-// It calls the createHotel function from the repository layer and returns the created hotel object.
 export async function createHotelService(hotelData: createHotelDto) {
-    const hotel = await createHotel(hotelData);
+    const hotel = await hotelRepository.create(hotelData);
     return hotel;
 }
-// The getHotelByIdService function is a service layer function that retrieves a hotel by its ID.
-// It calls the getHotelById function from the repository layer and returns the hotel object.
+
 export async function getHotelByIdService(id: number) {
-    const hotel = await getHotelById(id);
+    const hotel = await hotelRepository.findById(id);
     return hotel;
 }
 
 export async function getAllHotelService() {
-    const hotels = await getAllHotel();
+    const hotels = await hotelRepository.findAll();
     return hotels;
 }
 
 export async function updateHotelService(id: number, hotelData: updateHotelDto) {
-    const updatedHotel = await updateHotelById(id, hotelData);
+    const updatedHotel = await hotelRepository.update(id, hotelData);
     return updatedHotel;
 }
 
-export async function softDeleteHotelService(id: number) {
-    const deletedHotel = await softDeleteHotelById(id);
-    return deletedHotel;
-}
-
-export async function hardDeleteHotelService(id: number) {
-    const deletedHotel = await hardDeleteHotelById(id);
-    return deletedHotel;
-}
-
-export async function allSoftDeletedHotelService(){
-    const deletedHotels = await allSoftDeletedHotels()
-    return deletedHotels;
-}
-
-export async function restoreSoftDeletedHotelByIdService(id:number){
-    const deletedHotels = await restoreSoftDeletedHotelById(id)
-    return deletedHotels;
+export async function deleteHotelService(id: number) {
+    const hotel = await hotelRepository.findById(id);
+    if (!hotel) {
+        throw new BadRequesError(`Hotel with id ${id} not found`);
+    }
+    await hotelRepository.delete({ id });
+    return;
 }

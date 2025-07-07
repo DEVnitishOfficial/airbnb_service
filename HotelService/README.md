@@ -857,6 +857,30 @@ This flow allows the API to **soft delete** hotels by updating the `deleted_at` 
 
 Next goal may be to make available room for future 60 days always automatically.
 
+# Now, since we have implemented the migration and model now we will refractore some code but before that we have two question : 
+
+1. Do we need CRUD operation for roomCategory ?
+Ans : yes we need, because we the owner can create various type of room cateogory and according to need they can update and delete as well.
+
+2. Do we need CRUD operation for Room ?
+Ans : Here answer is both yes and no, for the room creation we do not need of rest network api because for room creation we are going to use the cron job which will automatically create room for next 60 days, but we need a rest api in case of room update and delete.
+
+Now simply i have to implement the CRUD API for room and roomCategory.
+
+# Refactoring of repository layer of hotelService.
+
+If you see the repository layer then we have methods like 
+* getHotelById
+* updateHotelById
+* softDeleteById
+* hardDeleteById etc.
+
+These all method we can re-use it because the repository layer nothing have to do with business logic these are just interacting with database so we can make a generalise the repository layer, for this we will use inheritance, class and object.
+
+1. first create a file named base.repository.ts
+    visit file for more information and detail that how we have implemented the common base repository and explanation. 
+
+
 
 
 
