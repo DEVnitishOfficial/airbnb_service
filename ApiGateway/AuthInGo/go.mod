@@ -1,0 +1,9 @@
+//  This line declares the name of our Go module. This name is used as a prefix when other modules need to import packages from our project (e.g., import "AuthInGo/app").
+module AuthInGo
+
+go 1.24.5
+
+require (
+	github.com/go-chi/chi/v5 v5.2.2 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
+)
