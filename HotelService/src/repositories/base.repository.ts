@@ -1,5 +1,6 @@
 
 import { Model, CreationAttributes, ModelStatic, WhereOptions } from 'sequelize';
+import { NotFoundError } from '../utils/errors/app.error';
 
 // here we are creating a abstract class BaseRepository that will be used as a base class for all repositories like HotelRepository, RoomRepository, etc.
 // if we use abstract class then no one can create an instance of this class i.e new BaseRepository() will not work directly.
@@ -22,7 +23,7 @@ abstract class BaseRepository<T extends Model> {
     async findById(id: number) : Promise<T | null> {
         const record = await this.model.findByPk(id);
         if (!record) {
-            return null;
+            throw new NotFoundError(`Record with id ${id} not found`);
         }
         return record;
     }
@@ -47,7 +48,7 @@ abstract class BaseRepository<T extends Model> {
         });
 
         if (!record) {
-            throw new Error(`Record not found for deletion with options: ${JSON.stringify(whereOptions)}`);
+            throw new NotFoundError(`Record not found for deletion with options: ${JSON.stringify(whereOptions)}`);
         }
 
         return;
@@ -61,7 +62,7 @@ abstract class BaseRepository<T extends Model> {
     async update(id: number, data: Partial<T>): Promise<T | null> {
         const record = await this.model.findByPk(id);
         if (!record) {
-            throw new Error(`Record with id ${id} not found`);
+            throw new NotFoundError(`Record with id ${id} not found`);
         }
         Object.assign(record, data);
         await record.save();
