@@ -2,6 +2,7 @@ package service
 
 import (
 	db "AuthInGo/db/repositories"
+	"fmt"
 )
 
 // interface for user service
@@ -9,7 +10,9 @@ type UserService interface {
 	CreateUser() error
 }
 
-// implementation of user service or simply it's a class that implements UserService interface
+// The UserServiceImpl struct has a field named userRepository.
+//
+//	This field can hold any object that satisfies the db.UserRepository interface
 type UserServiceImpl struct {
 	userRepository db.UserRepository // dependency injection of UserRepository
 }
@@ -23,6 +26,7 @@ func NewUserService(_userRepository db.UserRepository) UserService {
 
 // CreateUser method implementation
 func (u *UserServiceImpl) CreateUser() error {
-	// Implementation for creating a user
+	fmt.Println("Creating user in UserService")
+	u.userRepository.Create() // calling the Create method of UserRepository
 	return nil
 }

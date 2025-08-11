@@ -2,7 +2,7 @@ package db
 
 // here storage is a struct, which takes the responsibility of creating objects out of the userService
 
-type Storage struct {
+type Storage struct { // facilitates dependency injection for user repository
 	UserRepository UserRepository
 }
 

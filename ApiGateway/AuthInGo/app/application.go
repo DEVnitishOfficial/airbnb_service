@@ -2,8 +2,10 @@ package app
 
 import (
 	config "AuthInGo/config/env"
+	"AuthInGo/controllers"
 	db "AuthInGo/db/repositories"
 	"AuthInGo/router"
+	service "AuthInGo/services"
 	"fmt"
 	"net/http"
 	"time"
@@ -36,11 +38,17 @@ func NewApplication(config Config) *Application {
 }
 
 func (app *Application) Run() error {
+
+	ur := db.NewUserRepository()
+	us := service.NewUserService(ur)
+	uc := controllers.NewUserController(us)
+	uRouter := router.NewUserRouter(*uc)
+
 	//returning reference of the created server
 	server := &http.Server{
 		// below is the configuration of the server
 		Addr:         app.Config.Addr,
-		Handler:      router.SetUpRouter(),
+		Handler:      router.SetUpRouter(uRouter),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
