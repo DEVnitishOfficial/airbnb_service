@@ -2,6 +2,7 @@ package app
 
 import (
 	config "AuthInGo/config/env"
+	db "AuthInGo/db/repositories"
 	"AuthInGo/router"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ type Config struct {
 
 type Application struct {
 	Config Config
+	Store  db.Storage // In store we will have the access of all repositories
 }
 
 // constructor for config
@@ -27,7 +29,9 @@ func NewConfig(addr string) Config {
 // constructor for Application
 func NewApplication(config Config) *Application {
 	return &Application{
-		Config: config,
+		Config: config, // here we pass the config to Application struct
+		Store:  *db.NewStorage(),
+		// when we create a new Application, then  we pass it all the repositories which is inside the Storage struct
 	}
 }
 
