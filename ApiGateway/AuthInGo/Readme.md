@@ -226,5 +226,6 @@ http.Server.ListenAndServe()
 * Easy to extend and modify.
 * Test-friendly structure.
 * Independent layers communicating via interfaces.
-
 ---
+
+# Next Goal : Database connection

@@ -17,7 +17,6 @@ type Config struct {
 
 type Application struct {
 	Config Config
-	Store  db.Storage // In store we will have the access of all repositories
 }
 
 // constructor for config
@@ -32,8 +31,6 @@ func NewConfig(addr string) Config {
 func NewApplication(config Config) *Application {
 	return &Application{
 		Config: config, // here we pass the config to Application struct
-		Store:  *db.NewStorage(),
-		// when we create a new Application, then  we pass it all the repositories which is inside the Storage struct
 	}
 }
 
