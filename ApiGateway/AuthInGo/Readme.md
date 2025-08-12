@@ -22,3 +22,209 @@ go get -u github.com/go-chi/chi/v5
 go run main.go
 ```
 
+
+
+# **Go Server Architecture — Flow & Dependency Injection**
+
+This document explains the code flow of our Go application, starting from `main.go` and moving through server setup, routing, controllers, services, and repositories. It also covers our use of **constructor-based dependency injection** for flexibility and maintainability.
+
+---
+
+## **1. Application Entry Point — `main.go`**
+
+When the application starts, it executes `main.go`:
+
+```go
+func main() {
+	config.Load()
+	cfg := app.NewConfig(":3005")
+	app := app.NewApplication(cfg)
+	app.Run()
+}
+```
+
+**Step-by-step:**
+
+1. **Load environment variables** using `config.Load()`.
+2. **Create the configuration object** with `app.NewConfig(":3005")` — this holds server details like the address (`:3005`).
+3. **Create the `Application` object** using `app.NewApplication(cfg)`.
+4. **Run the application** with `app.Run()` — this method starts the HTTP server.
+
+---
+
+## **2. The `Run` Method in `Application`**
+
+Inside the `Run` method, we:
+
+1. Create dependencies (repository → service → controller → router).
+2. Configure and start the HTTP server.
+
+```go
+func (app *Application) Run() error {
+	// Dependency creation
+	ur := db.NewUserRepository()
+	us := service.NewUserService(ur)
+	uc := controllers.NewUserController(us)
+	uRouter := router.NewUserRouter(*uc)
+
+	// Server configuration
+	server := &http.Server{
+		Addr:         app.Config.Addr,
+		Handler:      router.SetUpRouter(uRouter),
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	fmt.Println("Starting server on http://localhost", app.Config.Addr)
+	return server.ListenAndServe()
+}
+```
+
+---
+
+## **3. Router Setup — `SetUpRouter`**
+
+We use the [**Chi router**](https://github.com/go-chi/chi), a lightweight and idiomatic HTTP router for Go.
+
+The `SetUpRouter` function:
+
+1. Creates a **new Chi router**.
+2. Accepts custom routers like `UserRouter`, `PostRouter`, `TweetRouter`, etc.
+3. Registers routes defined in each router’s `Register` method.
+4. Returns the fully configured `chi.Router`.
+
+---
+
+## **4. The `Router` Interface**
+
+To ensure all routers follow the same pattern, we define a **Router interface**:
+
+```go
+type Router interface {
+	Register(r chi.Router)
+}
+```
+
+Any router (e.g., `UserRouter`) that implements this interface **must** provide a `Register` method.
+
+---
+
+## **5. Example: `UserRouter`**
+
+```go
+type UserRouter struct {
+	UserController controllers.UserController
+}
+
+// Constructor
+func NewUserRouter(_userController controllers.UserController) Router {
+	return &UserRouter{
+		UserController: _userController,
+	}
+}
+
+// Register routes
+func (ur *UserRouter) Register(r chi.Router) {
+	r.Post("/signup", ur.UserController.RegisterUser)
+}
+```
+
+**Flow:**
+
+* The `UserRouter` receives a `UserController`.
+* In `Register`, it adds a POST `/signup` route linked to the `RegisterUser` method in the controller.
+* `SetUpRouter` calls this `Register` function, passing the shared Chi router.
+
+---
+
+## **6. Dependency Injection Flow**
+
+We follow **constructor-based dependency injection**, meaning:
+
+* Dependencies are created outside the struct itself.
+* Each constructor receives its dependencies as parameters, instead of creating them internally.
+
+**Flow in `Run` method:**
+
+```go
+// 1. Repository Layer
+ur := db.NewUserRepository()
+
+// 2. Service Layer (depends on repository interface)
+us := service.NewUserService(ur)
+
+// 3. Controller Layer (depends on service interface)
+uc := controllers.NewUserController(us)
+
+// 4. Router Layer (depends on controller)
+uRouter := router.NewUserRouter(*uc)
+```
+
+---
+
+## **7. Why Constructor-Based Dependency Injection?**
+
+* **Loose coupling:** Concrete classes depend on **interfaces**, not other concrete classes.
+* **Flexibility:** We can easily switch implementations without changing higher layers.
+  Example: Switching `MySQLUserRepository` to `MongoUserRepository` is a matter of passing a different implementation to `NewUserService()`.
+* **Testability:** We can inject mock repositories/services for unit testing.
+* **Clarity:** All dependencies are explicit — no hidden creation of objects inside constructors.
+
+---
+
+## **8. Example: Switching Repository Implementation**
+
+If `UserService` depends on a `UserRepository` interface, we can swap implementations easily:
+
+```go
+// Using MySQL
+ur := db.NewMySQLUserRepository()
+
+// Using MongoDB
+// ur := db.NewMongoUserRepository()
+
+us := service.NewUserService(ur)
+```
+
+No changes are required in the service or controller layer — only in the wiring.
+
+---
+
+## **9. Key Differences from Java Spring Boot**
+
+In frameworks like **Spring Boot**:
+
+* Dependency injection is handled automatically via annotations (`@Autowired`, `@Service`, etc.).
+* The framework manages the object lifecycle and wiring.
+
+In Go:
+
+* We **manually create and wire dependencies** (unless using a DI framework like `wire` or `fx`).
+* This manual approach gives us more control, but can become verbose in large applications — that's when DI frameworks for Go become useful.
+
+---
+
+## **10. Summary Diagram**
+
+```
+main.go
+  ↓
+Application.Run()
+  ↓
+Repository → Service → Controller → Router
+  ↓
+SetUpRouter() with chi
+  ↓
+http.Server.ListenAndServe()
+```
+
+---
+
+✅ **Benefits of this architecture**:
+
+* Clean separation of concerns.
+* Easy to extend and modify.
+* Test-friendly structure.
+* Independent layers communicating via interfaces.
+
+---
