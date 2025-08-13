@@ -8,7 +8,10 @@ import (
 
 type UserRepository interface {
 	GetById() (*models.User, error)
-	// Other methods like Get, Update, Delete can be added here
+	Create() error
+	GetAll() ([]*models.User, error)
+	DeleteById(id int64) error
+	UpdateById(id int64, user *models.User) error
 }
 
 type UserRepositoryImpl struct {
@@ -19,6 +22,41 @@ func NewUserRepository(_db *sql.DB) UserRepository {
 	return &UserRepositoryImpl{
 		db: _db,
 	}
+}
+
+func (u *UserRepositoryImpl) GetAll() ([]*models.User, error) {
+	return nil, nil
+}
+
+func (u *UserRepositoryImpl) DeleteById(id int64) error {
+	return nil
+}
+
+func (u *UserRepositoryImpl) UpdateById(id int64, user *models.User) error {
+	return nil
+}
+
+func (u *UserRepositoryImpl) Create() error {
+	query := "INSERT INTO users (username, email, password) VALUES (?, ?, ?)"
+	result, err := u.db.Exec(query, "nakchippa", "nakchippa@gmail.com", "nakchippa123@")
+
+	if err != nil {
+		fmt.Println("Error inserting user:", err)
+		return err
+	}
+	rowsAffected, rowErr := result.RowsAffected()
+	if rowErr != nil {
+		fmt.Println("Error getting rows affected:", rowErr)
+		return rowErr
+	}
+
+	if rowsAffected == 0 {
+		fmt.Println("No rows were affected, user not created")
+		return nil
+	}
+
+	fmt.Println("User created successfully, rows affected:", rowsAffected)
+	return nil
 }
 
 func (u *UserRepositoryImpl) GetById() (*models.User, error) {
