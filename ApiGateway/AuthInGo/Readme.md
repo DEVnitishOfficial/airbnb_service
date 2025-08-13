@@ -228,4 +228,11 @@ http.Server.ListenAndServe()
 * Independent layers communicating via interfaces.
 ---
 
-# Next Goal : Database connection
+# Next Goal : Database connection ---> done
+# how to query database : 
+* short answer : Raw Queries
+* Long answer : 
+	1. Prepare a query(string)
+	2. Execute the query using inbuild query methods, most of these methods going to return some row data to us.
+	3. We need to process this row data and create an output object
+	4. Return the object.

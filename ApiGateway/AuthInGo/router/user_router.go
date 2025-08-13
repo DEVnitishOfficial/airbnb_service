@@ -17,5 +17,5 @@ func NewUserRouter(_userController controllers.UserController) Router {
 }
 
 func (ur *UserRouter) Register(r chi.Router) {
-	r.Post("/signup", ur.UserController.RegisterUser)
+	r.Get("/profile", ur.UserController.GetUserById)
 }
