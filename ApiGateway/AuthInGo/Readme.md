@@ -236,3 +236,13 @@ http.Server.ListenAndServe()
 	2. Execute the query using inbuild query methods, most of these methods going to return some row data to us.
 	3. We need to process this row data and create an output object
 	4. Return the object.
+
+
+
+# Next Goal : Add migration(goose)
+
+1. COMMAND FOR CREATING MIGRATION : 
+goose -dir "db/migrations" create create_user_table sql
+
+2. How to run the migration
+goose -dir "db/migrations" mysql "root:mysql@1234&?@tcp(127.0.0.1:3306)/Airbnb_auth_dev" up
