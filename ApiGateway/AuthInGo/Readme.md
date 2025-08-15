@@ -246,3 +246,13 @@ goose -dir "db/migrations" create create_user_table sql
 
 2. How to run the migration
 goose -dir "db/migrations" mysql "root:mysql@1234&?@tcp(127.0.0.1:3306)/Airbnb_auth_dev" up
+
+
+* Install air form github for hot reload like nodemon
+```go 
+go install github.com/air-verse/air@latest
+```
+and update your Makefile by folliwing command
+dev:  # make dev
+	air
+Now it will see your all file and if any changes found it will recompile and run you server

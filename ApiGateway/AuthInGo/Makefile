@@ -1,7 +1,11 @@
 
 MIGRATION_FOLDER := db/migrations
-DB_URL := "root:mysql@1234&?@tcp(127.0.0.1:3306)/Airbnb_auth_dev"
 
+run:  # make run
+	go run main.go
+
+dev:  # make dev
+	air
 # create a new migration ---> make migrate-create name="create_user_table" ----->>>>>> use gmake on mac
 migrate-create:
 	goose -dir "$(MIGRATION_FOLDER)" create $(name) sql
@@ -39,3 +43,7 @@ migrate-force:
 # Print Goose help # gmake migrate-help
 migrate-help:
 	goose -h
+
+# task1 : write a service layer code, that can encrypt the user password before passing to the repository layer
+
+# task2 : write a service layer function that can create a new JWT token for a user.
