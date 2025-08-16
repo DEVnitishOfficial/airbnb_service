@@ -38,7 +38,10 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 func (uc *UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("LoginUser is called in UserController")
-	res := uc.userService.LoginUser()
+	res, err := uc.userService.LoginUser()
+	if err != nil {
+		fmt.Println("Got error from controllers while signin user", err)
+	}
 	fmt.Println("LoggedIn user", res)
-	w.Write([]byte("LoggedIn endpoint done "))
+	w.Write([]byte("LoggedIn endpoint done"))
 }

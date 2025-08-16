@@ -256,3 +256,8 @@ and update your Makefile by folliwing command
 dev:  # make dev
 	air
 Now it will see your all file and if any changes found it will recompile and run you server
+
+# Install jwt token
+```go
+go get -u github.com/golang-jwt/jwt/v5
+```
