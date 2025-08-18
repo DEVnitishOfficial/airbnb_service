@@ -5,7 +5,9 @@
 package controllers
 
 import (
+	"AuthInGo/dto"
 	services "AuthInGo/services"
+	"AuthInGo/utils"
 	"fmt"
 	"net/http"
 )
@@ -37,11 +39,27 @@ func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc *UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
+
 	fmt.Println("LoginUser is called in UserController")
-	res, err := uc.userService.LoginUser()
-	if err != nil {
-		fmt.Println("Got error from controllers while signin user", err)
+
+	var payload dto.LoginUserRequestDto
+
+	if JsonErr := utils.ReadJSONBody(r, &payload); JsonErr != nil {
+		utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "Something went wrong while reading ReadJSONBody from controllers", JsonErr)
 	}
-	fmt.Println("LoggedIn user", res)
-	w.Write([]byte("LoggedIn endpoint done"))
+
+	if ValidationErr := utils.Validator.Struct(payload); ValidationErr != nil {
+		utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "Invalid input detail", ValidationErr)
+		return
+	}
+
+	jwtToken, err := uc.userService.LoginUser(&payload)
+	if err != nil {
+		utils.WriteJSONErrorResponse(w, http.StatusInternalServerError, "Failed to login user", err)
+		return
+	}
+
+	// utils.WriteJSONResponse(w, http.StatusOK, response)
+	utils.WriteJSONSuccessResponse(w, http.StatusOK, "User loggedIn successfully", jwtToken)
+
 }

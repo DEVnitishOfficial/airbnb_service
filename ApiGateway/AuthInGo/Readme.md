@@ -261,3 +261,63 @@ Now it will see your all file and if any changes found it will recompile and run
 ```go
 go get -u github.com/golang-jwt/jwt/v5
 ```
+
+# Writing cusotm JSON response writer using "gin".
+
+**JSON marshalling**
+* In Go, JSON marshalling refers to the process of converting Go data structures (like structs, maps, slices, and basic types) into a JSON-formatted byte slice. This process is handled by the encoding/json package, specifically using the json.Marshal function.
+
+## How to Marshal JSON in Go
+* Define your Go data structure: This can be a struct, a map, or a simple variable. For structs, ensure that the fields you want to be marshaled have uppercase first letters (exported fields) and optionally include json struct tags to control the JSON field names.
+
+```go
+    type Person struct {
+        Name    string `json:"full_name"` // `json:"full_name"` maps "Name" to "full_name" in JSON
+        Age     int    `json:"age"`
+        IsAdult bool   `json:"is_adult,omitempty"` // `omitempty` omits the field if its zero value
+    }
+```
+
+# Full code example of Marshalling :
+
+```go
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type User struct {
+	ID       int    `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email,omitempty"`
+}
+
+func main() {
+	user := User{ID: 1, Username: "johndoe", Email: "john.doe@example.com"}
+
+	// Marshal the struct into JSON
+	jsonData, err := json.Marshal(user)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+
+	fmt.Println("Marshaled JSON:", string(jsonData))
+
+	// Example with omitempty
+	userWithoutEmail := User{ID: 2, Username: "janedoe"}
+	jsonData2, err := json.Marshal(userWithoutEmail)
+	if err != nil {
+		fmt.Println("Error marshalling JSON:", err)
+		return
+	}
+	fmt.Println("Marshaled JSON (without email):", string(jsonData2))
+}
+```
+
+# Adding go validator:
+```go 
+go get github.com/go-playground/validator/v10
+```

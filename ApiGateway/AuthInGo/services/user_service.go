@@ -3,6 +3,7 @@ package service
 import (
 	env "AuthInGo/config/env"
 	db "AuthInGo/db/repositories"
+	"AuthInGo/dto"
 	"AuthInGo/utils"
 	"fmt"
 
@@ -14,7 +15,7 @@ import (
 type UserService interface {
 	GetUserById() error
 	CreateUser() error
-	LoginUser() (string, error)
+	LoginUser(payload *dto.LoginUserRequestDto) (string, error)
 }
 
 // The UserServiceImpl struct has a field named userRepository.
@@ -54,9 +55,9 @@ func (u *UserServiceImpl) CreateUser() error {
 	return nil
 }
 
-func (u *UserServiceImpl) LoginUser() (string, error) {
-	email := "user4@gmail.com"
-	password := "pass4user4"
+func (u *UserServiceImpl) LoginUser(payload *dto.LoginUserRequestDto) (string, error) {
+	email := payload.Email
+	password := payload.Password
 	// step:1 Make a repository call to get the user by email
 	fmt.Println("Getting user by email")
 	user, err := u.userRepository.GetByEmail(email)
@@ -75,12 +76,12 @@ func (u *UserServiceImpl) LoginUser() (string, error) {
 
 	// step:4 if password matches, print a JWT token else return error saying password not match
 
-	payload := jwt.MapClaims{
+	jwtPayload := jwt.MapClaims{
 		"email": user.Email,
 		"id":    user.ID,
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, payload)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtPayload)
 	tokenString, err := token.SignedString([]byte(env.GetString("JWT_SECRET", "DNKN_TOKEN")))
 
 	if err != nil {
