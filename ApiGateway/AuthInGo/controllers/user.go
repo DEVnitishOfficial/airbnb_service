@@ -63,13 +63,10 @@ func (uc *UserController) GetUserById(w http.ResponseWriter, r *http.Request) {
 func (uc *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("CreateUser is called in UserController")
 
-	var payload dto.CreateUserRequestDto
-
-	if JsonErr := utils.ReadJSONBody(r, &payload); JsonErr != nil {
-		utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "something went wrong while reading ReadJSONBody", JsonErr)
-	}
+	payload := r.Context().Value("payload").(dto.CreateUserRequestDto)
 
 	user, err := uc.userService.CreateUser(&payload)
+
 	if err != nil {
 		utils.WriteJSONErrorResponse(w, http.StatusInternalServerError, "Failed to create user", err)
 		return
@@ -81,9 +78,12 @@ func (uc *UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("LoginUser is called in UserController")
 
-	var payload dto.LoginUserRequestDto
+	payload := r.Context().Value("payload").(dto.LoginUserRequestDto)
+
+	fmt.Println("LoginUserRequestDto:", payload)
 
 	jwtToken, err := uc.userService.LoginUser(&payload)
+
 	if err != nil {
 		utils.WriteJSONErrorResponse(w, http.StatusInternalServerError, "Failed to login user", err)
 		return

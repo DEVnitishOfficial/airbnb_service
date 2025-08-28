@@ -62,6 +62,7 @@ func (u *UserServiceImpl) CreateUser(payload *dto.CreateUserRequestDto) (*models
 
 	// hashing password using utils.HashPassword
 	hashedPassword, err := utils.HashedPassword(payload.Password)
+
 	if err != nil {
 		fmt.Println("Unable to hash password")
 		return nil, err

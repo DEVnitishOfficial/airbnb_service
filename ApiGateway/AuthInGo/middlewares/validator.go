@@ -3,6 +3,8 @@ package middlewares
 import (
 	"AuthInGo/dto"
 	"AuthInGo/utils"
+	"context"
+	"fmt"
 	"net/http"
 )
 
@@ -21,7 +23,12 @@ func UserLoginRequestValidator(next http.Handler) http.Handler {
 			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "validation failed", err)
 			return
 		}
-		next.ServeHTTP(w, r) // call the next handler in the chain
+
+		fmt.Println("UserLoginRequestValidator passed, payload:", payload)
+
+		ctx := context.WithValue(r.Context(), "payload", payload)
+
+		next.ServeHTTP(w, r.WithContext(ctx)) // call the next handler in the chain
 	})
 }
 
@@ -40,6 +47,10 @@ func UserCreateRequestValidator(next http.Handler) http.Handler {
 			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "validation failed", err)
 			return
 		}
-		next.ServeHTTP(w, r) // call the next handler in the chain
+		fmt.Println("payload reveived for login", payload)
+
+		ctx := context.WithValue(r.Context(), "payload", payload) // create a new context with the payload
+
+		next.ServeHTTP(w, r.WithContext(ctx)) // call the next handler in the chain
 	})
 }
