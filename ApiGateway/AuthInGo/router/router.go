@@ -5,6 +5,7 @@ import (
 	"AuthInGo/middlewares"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type Router interface {
@@ -14,6 +15,9 @@ type Router interface {
 // here *chi.Mux is the return type of the chi router
 func SetUpRouter(UserRouter Router) *chi.Mux {
 	chiRouter := chi.NewRouter()
+
+	chiRouter.Use(middleware.Logger)
+	chiRouter.Use(middlewares.UserLoginRequestValidator)
 
 	chiRouter.Use(middlewares.RequestLogger)
 	chiRouter.Get("/ping", controllers.PingHandler)

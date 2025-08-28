@@ -4,6 +4,7 @@ import (
 	env "AuthInGo/config/env"
 	db "AuthInGo/db/repositories"
 	"AuthInGo/dto"
+	"AuthInGo/models"
 	"AuthInGo/utils"
 	"fmt"
 
@@ -13,8 +14,9 @@ import (
 
 // interface for user service
 type UserService interface {
-	GetUserById() error
-	CreateUser() error
+	GetAllUserService() ([]*models.User, error)
+	GetUserById(id string) (*models.User, error)
+	CreateUser(payload *dto.CreateUserRequestDto) (*models.User, error)
 	LoginUser(payload *dto.LoginUserRequestDto) (string, error)
 }
 
@@ -32,27 +34,48 @@ func NewUserService(_userRepository db.UserRepository) UserService {
 	}
 }
 
-// CreateUser method implementation
-func (u *UserServiceImpl) GetUserById() error {
-	fmt.Println("Fetching user in UserService")
-	u.userRepository.GetById()
-	return nil
+// service layer of getAll user
+
+func (u *UserServiceImpl) GetAllUserService() ([]*models.User, error) {
+	fmt.Println("Fetching all users from service layer")
+	user, err := u.userRepository.GetAll()
+	if err != nil {
+		fmt.Println("Got error while fetching user from service layer", err)
+		return nil, err
+	}
+	return user, nil
 }
 
-func (u *UserServiceImpl) CreateUser() error {
+// GetUserById is a method that fetches a user by ID using the userRepository
+func (u *UserServiceImpl) GetUserById(id string) (*models.User, error) {
+	fmt.Println("Fetching user in UserService")
+	user, err := u.userRepository.GetById(id)
+	if err != nil {
+		fmt.Println("Got error while fetching user from service layer", err)
+		return nil, err
+	}
+	return user, nil
+}
+
+func (u *UserServiceImpl) CreateUser(payload *dto.CreateUserRequestDto) (*models.User, error) {
 	fmt.Println("Creating user from userService")
-	password := "pass4user4"
-	hashedPassword, err := utils.HashedPassword(password)
+
+	// hashing password using utils.HashPassword
+	hashedPassword, err := utils.HashedPassword(payload.Password)
 	if err != nil {
 		fmt.Println("Unable to hash password")
-		return err
+		return nil, err
 	}
-	u.userRepository.Create(
-		"user4",
-		"user4@gmail.com",
-		hashedPassword,
-	)
-	return nil
+
+	// call repository layer to create the user
+	createdUser, err := u.userRepository.Create(payload.Username, payload.Email, hashedPassword)
+	if err != nil {
+		fmt.Println("Error while creating user", err)
+		return nil, err
+	}
+
+	// return the created user
+	return createdUser, nil
 }
 
 func (u *UserServiceImpl) LoginUser(payload *dto.LoginUserRequestDto) (string, error) {

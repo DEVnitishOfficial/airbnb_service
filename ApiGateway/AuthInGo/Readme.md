@@ -326,3 +326,5 @@ go get github.com/go-playground/validator/v10
  * connect all the remaining apis : Signup and get user with service using json marshalling
  * write a middleware to validate every incoming request body
  * setup a good error handling mechanism
+
+
