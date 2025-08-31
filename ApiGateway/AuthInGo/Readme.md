@@ -328,3 +328,8 @@ go get github.com/go-playground/validator/v10
  * setup a good error handling mechanism
 
 
+ # setting up the rate limiting
+
+ # Homework
+ * Explore ip address and jwt based rate limiting
+
