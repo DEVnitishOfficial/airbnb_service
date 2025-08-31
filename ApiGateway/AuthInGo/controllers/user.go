@@ -45,7 +45,17 @@ func (uc *UserController) GetAllUserController(w http.ResponseWriter, r *http.Re
 func (uc *UserController) GetUserById(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("GetUserById is called in UserController")
 
-	userId := "16"
+	userId := r.URL.Query().Get("id")
+	if userId == "" {
+		userId = r.Context().Value("userID").(string)
+	}
+	fmt.Println("userId from the context or query param:", userId)
+
+	if userId == "" {
+		utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "User ID is required", fmt.Errorf("user ID is required"))
+		return
+	}
+
 	user, err := uc.userService.GetUserById(userId)
 
 	if err != nil {

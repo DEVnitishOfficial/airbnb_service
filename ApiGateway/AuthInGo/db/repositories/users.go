@@ -122,7 +122,7 @@ func (u *UserRepositoryImpl) GetById(id string) (*models.User, error) {
 	// step 1 : Prepare the SQL query
 	query := "SELECT id, username, email, created_at, updated_at FROM users WHERE id = ?"
 	// step 2 : Execute the query
-	row := u.db.QueryRow(query, 10)
+	row := u.db.QueryRow(query, id)
 	// step 3 : Process the result
 	// it simply creates a user object and scans the row into it
 	user := &models.User{}
