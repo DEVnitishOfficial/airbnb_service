@@ -333,3 +333,29 @@ go get github.com/go-playground/validator/v10
  # Homework
  * Explore ip address and jwt based rate limiting
 
+ # working on reverse proxy
+  * let's understand how it works.
+
+  * suppose we want to make request on fakestore api  on url : https://fakestoreapi.in/api/products/category
+
+  * Suppose from postman you are making request on url : http://localhost:3002/fakestoreService/api/products/category
+
+  * Behind the scene working of apiGateway
+
+  * to achieve this functionality we have defined a ProxyToService function which take two parameter 
+			1. The(targetBaseUrl) base URL on which api gateway will going to make call
+			2. Second one is pathPrefix, on the basis of which we remove previous of this url including this as well 
+
+			For example suppose you have complete url : http://localhost:3002/fakestoreService/api/products/category
+
+			and "pathPrefix" is fakestoreService then there is a method TrimPrefix on go inbuilt strings, so using this method it remove the path prefix and return a stripped path like this one is stripped path : /api/products/category
+
+			* Finally here we combine the targetBaseUrl + stripped path which becomes something like this one : http://fakestoreapi.in/ + /api/products/category
+				= http://fakestoreapi.in/api/products/category
+
+
+```go  used in router.go
+	chiRouter.HandleFunc("/fakestoreService/*", utils.ProxyToService("http://fakestoreapi.in/", "/fakestoreService"))
+```
+
+# Next Assignment : start wiring the api gateway with other microservices

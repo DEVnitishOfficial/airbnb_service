@@ -21,7 +21,7 @@ func getLimiter(ip string) *rate.Limiter {
 	limiter, exists := visitors[ip]
 	if !exists {
 		// 5 requests per minute per IP
-		limiter = rate.NewLimiter(rate.Every(time.Minute), 5)
+		limiter = rate.NewLimiter(rate.Every(time.Second), 5)
 		visitors[ip] = limiter
 	}
 	return limiter
