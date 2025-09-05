@@ -45,15 +45,21 @@ func (app *Application) Run() error {
 	}
 
 	ur := repo.NewUserRepository(db)
+	rr := repo.NewRoleRepository(db)
+
 	us := service.NewUserService(ur)
+	rs := service.NewRoleService(rr)
+
 	uc := controllers.NewUserController(us)
+	rc := controllers.NewRoleController(rs)
 	uRouter := router.NewUserRouter(*uc)
+	rRouter := router.NewRoleRouter(*rc)
 
 	//returning reference of the created server
 	server := &http.Server{
 		// below is the configuration of the server
 		Addr:         app.Config.Addr,
-		Handler:      router.SetUpRouter(uRouter),
+		Handler:      router.SetUpRouter(uRouter, rRouter),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
