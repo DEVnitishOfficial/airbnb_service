@@ -358,4 +358,13 @@ go get github.com/go-playground/validator/v10
 	chiRouter.HandleFunc("/fakestoreService/*", utils.ProxyToService("http://fakestoreapi.in/", "/fakestoreService"))
 ```
 
-# Next Assignment : start wiring the api gateway with other microservices
+# Next Assignment : start writing the api gateway with other microservices
+
+# RBAC(Role based access control implementation started;)
+
+* completed RBAC migration here got some issue and that issue were related to 
+data type incompitable
+
+* Be cautious when you use SERIEL in id column because is serieal is equivalent to
+"BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE" and in reference if you provide 
+int then you will get incompitable error.
