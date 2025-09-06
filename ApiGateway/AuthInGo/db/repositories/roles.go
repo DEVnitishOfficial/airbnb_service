@@ -6,6 +6,12 @@ import (
 	"fmt"
 )
 
+// 1. Interface (The Contract)
+//
+//	interface RoleRepository {
+//	    getById(id: string): Promise<Role | null>;
+//	    // ... other methods
+//	}
 type RoleRepository interface {
 	GetById(id int64) (*models.Role, error)
 	GetRoleByName(name string) (*models.Role, error)
@@ -15,16 +21,42 @@ type RoleRepository interface {
 	UpdateRoleById(id int64, name string, description string) (*models.Role, error)
 }
 
+// A Go struct is a composite data type that just holds data (your db connection). A TypeScript class
+//  combines both data (properties like db) and behavior (methods like getById) into a single blueprint.
+// 2. Struct (The Blueprint of the "Class")
+// 2. In TS ---> Class (The Blueprint of the "Class" and Methods)
+// class UserRepositoryImpl implements UserRepository {
+//     private db: any;
+// }
+
 type RoleRepositoryImpl struct {
 	db *sql.DB
 }
 
+// 3.Object Creation. Go has a convention of using a New function as a constructor or factory.
+//
+//	This function returns an instance of the struct but with the interface type
+//
+// (return &RoleRepositoryImpl{}). TypeScript uses the standard new keyword with the class name
+//
+//	(new RoleRepositoryImpl(...)).
+//	 3. Constructor/Factory Function
+//	    constructor(db: any) {
+//	    this.db = db;
+//	    }
 func NewRoleRepository(_db *sql.DB) RoleRepository {
 	return &RoleRepositoryImpl{
 		db: _db,
 	}
 }
 
+// 4. Method Implementation (Attached to the struct)
+// These methods "implement" the interface implicitly
+//
+//	async getById(id: string): Promise<User | null> {
+//		// Implementation logic here
+//		return null;
+//	}
 func (r *RoleRepositoryImpl) GetById(id int64) (*models.Role, error) {
 	query := "SELECT id, name, description, created_at, updated_at FROM roles WHERE id = ?"
 

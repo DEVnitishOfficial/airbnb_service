@@ -6,6 +6,74 @@ import (
 	"fmt"
 )
 
+// Similir kind of implementation done in typescript for better understanding of go code.
+/*
+// The `User` model, analogous to your Go `models.User`
+interface User {
+    id: number;
+    username: string;
+    email: string;
+    // ... other properties
+}
+
+// 1. The Interface (The Contract) - Exactly like Go
+interface UserRepository {
+    getById(id: string): Promise<User | null>;
+    getByEmail(email: string): Promise<User | null>;
+    create(username: string, email: string, hashedPassword: string): Promise<User>;
+    getAll(): Promise<User[]>;
+    deleteById(id: number): Promise<void>;
+    updateById(id: number, user: User): Promise<User>;
+}
+
+// 2. The Class (Implementation) - The equivalent of your `UserRepositoryImpl` struct + methods
+class UserRepositoryImpl implements UserRepository {
+    // A private property for the database connection
+    private db: any;
+
+    // The constructor, equivalent to your `NewUserRepository` function
+    constructor(db: any) {
+        this.db = db;
+    }
+
+    // The method implementations, defined directly inside the class
+    async getById(id: string): Promise<User | null> {
+        // Your implementation logic here
+        return null;
+    }
+
+    async getByEmail(email: string): Promise<User | null> {
+        // Your implementation logic here
+        return null;
+    }
+
+    // And so on for all other methods...
+    async create(username: string, email: string, hashedPassword: string): Promise<User> {
+      // Your implementation logic here
+      return { id: 1, username, email } as User;
+    }
+
+    async getAll(): Promise<User[]> {
+      // Your implementation logic here
+      return [];
+    }
+
+    async deleteById(id: number): Promise<void> {
+        // Your implementation logic here
+    }
+
+    async updateById(id: number, user: User): Promise<User> {
+        // Your implementation logic here
+        return user;
+    }
+}
+
+// 3. Object Creation - The equivalent of calling your `NewUserRepository` function
+const myDbConnection = {}; // Assume this is your database client
+const userRepository: UserRepository = new UserRepositoryImpl(myDbConnection);
+*/
+
+// similir to typescript interface
 type UserRepository interface {
 	GetById(id string) (*models.User, error)
 	GetByEmail(email string) (*models.User, error)
@@ -15,16 +83,21 @@ type UserRepository interface {
 	UpdateById(id int64, user *models.User) (*models.User, error)
 }
 
+// similir to class in typescript, here in go it only take properties not consturctor and methods
 type UserRepositoryImpl struct {
 	db *sql.DB
 }
 
+// this is similir to the typescript consturctor, here it is not defined inside the struct rather it
+// is attached to the struct using &UserRepositoryImpl
 func NewUserRepository(_db *sql.DB) UserRepository {
 	return &UserRepositoryImpl{
 		db: _db,
 	}
 }
 
+// this is similir to methods definiton in typescript which is written inside the class but here in
+// golang it is attached to the class/struct using *UserRepositoryImpl
 func (u *UserRepositoryImpl) GetAll() ([]*models.User, error) {
 
 	query := "SELECT id, username, email, created_at, updated_at FROM users"
