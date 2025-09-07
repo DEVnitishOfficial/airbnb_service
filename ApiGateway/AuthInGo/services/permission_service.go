@@ -70,7 +70,7 @@ func (p *PermissionServiceImpl) CreatePermissionService(name string, description
 	fmt.Println("create permission called in service layer")
 	createdPermission, error := p.permissionRepository.CreatePermission(name, description, resource, action)
 
-	if createdPermission != nil {
+	if error != nil {
 		fmt.Println("Got error while creating permission form service layer")
 		return nil, error
 	}

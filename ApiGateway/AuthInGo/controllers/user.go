@@ -18,6 +18,26 @@ type UserController struct {
 }
 
 // constructor for UserController
+/**
+Is all the UserService property we are putting here inside the _userService and further
+inside the userService in return statement?
+
+Yes, that is exactly what is happening.
+
+When you call NewUserController, you are required to pass in an object that implements the
+services.UserService interface.
+
+That object is received inside the NewUserController function and is given the local
+name _userService.
+
+The return statement creates a new UserController struct.
+
+The line userService: _userService, takes the object you passed in (the value of
+the _userService parameter) and assigns it to the userService field of the new
+ UserController struct.
+
+This is the standard way to inject a dependency.
+**/
 func NewUserController(_userService services.UserService) *UserController {
 	return &UserController{
 		userService: _userService,

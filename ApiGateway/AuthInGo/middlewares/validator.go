@@ -90,3 +90,39 @@ func RoleUpdateRequestValidator(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+func PermissionCreateRequestValidator(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload dto.CreatePermissionRequestDto
+		if err := utils.ReadJSONBody(r, &payload); err != nil {
+			fmt.Println("error in reading json body", err)
+			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "Invalid request body", err)
+			return
+		}
+		if err := utils.Validator.Struct(payload); err != nil {
+			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "validation failed", err)
+			return
+		}
+		fmt.Println("payload reveived for create Permission", payload)
+		ctx := context.WithValue(r.Context(), "payload", payload)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func PermissionUpdateRequestValidator(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload dto.UpdatePermissionRequestDto
+		if err := utils.ReadJSONBody(r, &payload); err != nil {
+			fmt.Println("error in reading json body", err)
+			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "Invalid request body", err)
+			return
+		}
+		if err := utils.Validator.Struct(payload); err != nil {
+			utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "validation failed", err)
+			return
+		}
+		fmt.Println("payload reveived for update permission", payload)
+		ctx := context.WithValue(r.Context(), "payload", payload)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
