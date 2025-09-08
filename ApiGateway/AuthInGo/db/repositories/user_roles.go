@@ -165,12 +165,21 @@ func (u *UserRoleRepositoryImpl) HasAnyRole(userId int64, roleNames []string) (b
 	if len(roleNames) == 0 {
 		return true, nil // If no roles are specified, return true
 	}
-	placeholders := strings.Repeat("?,", len(roleNames))
-	placeholders = placeholders[:len(placeholders)-1]
+	placeholders := strings.Repeat("?,", len(roleNames)) // it create parameter placeholders(?) based on how many role passed to it.
+	placeholders = placeholders[:len(placeholders)-1]    // remove the last comma("?","?", to "?","?")
 	query := fmt.Sprintf("SELECT COUNT(*) > 0 FROM user_roles ur INNER JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = ? AND r.name IN (%s)", placeholders)
 
+	/* finally query will look like
+	   SELECT COUNT(*) > 0
+	   FROM user_roles ur
+	   INNER JOIN roles r ON ur.role_id = r.id
+	   WHERE ur.user_id = 42
+	   AND r.name IN ('user', 'admin');
+
+	*/
+
 	// Create args slice with userId first, then all roleNames
-	args := make([]interface{}, 0, 1+len(roleNames))
+	args := make([]interface{}, 0, 1+len(roleNames)) // creating a slice just like array in js.
 	args = append(args, userId)
 	for _, roleName := range roleNames {
 		args = append(args, roleName)
