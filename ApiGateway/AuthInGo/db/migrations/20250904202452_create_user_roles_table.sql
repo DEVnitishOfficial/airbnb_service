@@ -10,6 +10,14 @@ CREATE TABLE IF NOT EXISTS user_roles(
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose StatementEnd
+INSERT INTO user_roles(user_id, role_id)
+SELECT id, 2 FROM users;
+
+INSERT INTO user_roles(user_id, role_id)
+SELECT id, 1 FROM users WHERE email = 'nkumar52@r1rcm.com';
+
+INSERT INTO user_roles(user_id, role_id)
+SELECT id, 3 FROM users WHERE email = 'test@gmail.com';
 
 -- +goose Down
 -- +goose StatementBegin
