@@ -14,7 +14,7 @@ type Router interface {
 }
 
 // here *chi.Mux is the return type of the chi router
-func SetUpRouter(UserRouter Router, RoleRouter Router, PermissionRouter Router) *chi.Mux {
+func SetUpRouter(UserRouter Router, RoleRouter Router, PermissionRouter Router, RolePermissionRouter Router) *chi.Mux {
 	chiRouter := chi.NewRouter()
 
 	chiRouter.Use(middleware.Logger)
@@ -28,6 +28,7 @@ func SetUpRouter(UserRouter Router, RoleRouter Router, PermissionRouter Router) 
 	UserRouter.Register(chiRouter)
 	RoleRouter.Register(chiRouter)
 	PermissionRouter.Register(chiRouter)
+	RolePermissionRouter.Register(chiRouter)
 
 	return chiRouter
 }

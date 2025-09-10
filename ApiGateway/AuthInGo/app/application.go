@@ -47,24 +47,28 @@ func (app *Application) Run() error {
 	ur := repo.NewUserRepository(db)
 	rr := repo.NewRoleRepository(db)
 	pr := repo.NewPermissionRepository(db)
+	rpr := repo.NewRolePermissionRepository(db)
 
 	us := service.NewUserService(ur)
 	rs := service.NewRoleService(rr)
 	ps := service.NewPermissionService(pr)
+	rps := service.NewRolePermissionService(rpr)
 
 	uc := controllers.NewUserController(us)
 	rc := controllers.NewRoleController(rs)
 	pc := controllers.NewPermissionController(ps)
+	rpc := controllers.NewRolePermissionController(rps)
 
 	uRouter := router.NewUserRouter(*uc)
 	rRouter := router.NewRoleRouter(*rc)
 	pRouter := router.NewPermissionRouter(*pc)
+	rpRouter := router.NewRolePermissionRouter(*rpc)
 
 	//returning reference of the created server
 	server := &http.Server{
 		// below is the configuration of the server
 		Addr:         app.Config.Addr,
-		Handler:      router.SetUpRouter(uRouter, rRouter, pRouter),
+		Handler:      router.SetUpRouter(uRouter, rRouter, pRouter, rpRouter),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
