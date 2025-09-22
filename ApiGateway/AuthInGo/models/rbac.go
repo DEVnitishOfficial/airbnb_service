@@ -1,7 +1,10 @@
 package models
 
 type Role struct {
-	ID          int64
+	UserId      int64
+	UserName    string
+	Email       string
+	RoleId      int64
 	RoleName    string
 	Description string
 	CreatedAt   string
@@ -27,9 +30,12 @@ type RolePermission struct {
 }
 
 type UserRole struct {
-	ID        int64
-	UserId    int64
-	RoleId    int64
-	CreatedAt string
-	UpdatedAt string
+	UserId      int64
+	UserName    string
+	Email       string
+	RoleId      int64
+	RoleName    string
+	Description string
+	CreatedAt   string
+	UpdatedAt   string
 }

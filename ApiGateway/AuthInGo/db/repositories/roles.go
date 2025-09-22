@@ -64,7 +64,7 @@ func (r *RoleRepositoryImpl) GetById(id int64) (*models.Role, error) {
 
 	role := &models.Role{}
 
-	err := row.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt)
+	err := row.Scan(&role.RoleId, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -83,7 +83,7 @@ func (r *RoleRepositoryImpl) GetRoleByName(name string) (*models.Role, error) {
 	query := "SELECT id, name, description, created_at, updated_at FROM roles WHERE name = ?"
 	row := r.db.QueryRow(query, name)
 	role := &models.Role{}
-	err := row.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt)
+	err := row.Scan(&role.RoleId, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (r *RoleRepositoryImpl) GetAllRoles() ([]*models.Role, error) {
 	var roles []*models.Role
 	for rows.Next() {
 		role := &models.Role{}
-		if err := rows.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt); err != nil {
+		if err := rows.Scan(&role.RoleId, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt); err != nil {
 			return nil, err
 		}
 		roles = append(roles, role)
@@ -119,7 +119,7 @@ func (r *RoleRepositoryImpl) CreateRole(name string, description string) (*model
 		return nil, err
 	}
 	role := &models.Role{
-		ID:          lastInsertID,
+		RoleId:      lastInsertID,
 		RoleName:    name,
 		Description: description,
 	}
@@ -156,7 +156,7 @@ func (r *RoleRepositoryImpl) UpdateRoleById(id int64, name string, description s
 		return nil, fmt.Errorf("no role updated")
 	}
 	role := &models.Role{
-		ID:          id,
+		RoleId:      id,
 		RoleName:    name,
 		Description: description,
 	}

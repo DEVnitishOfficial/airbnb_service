@@ -9,10 +9,9 @@ import (
 
 type UserRoleRepository interface {
 	GetUserRoles(userId int64) ([]*models.Role, error)
+	GetAllUserAndTheirRoles() ([]*models.UserRole, error)
 	AssignRoleToUser(userId int64, roleId int64) error
 	RemoveRoleFromUser(userId int64, roleId int64) error
-	GetUserPermissions(userId int64) ([]*models.Permission, error)
-	HasPermission(userId int64, permissionName string) (bool, error)
 	HasRole(userId int64, roleName string) (bool, error)
 	HasAllRoles(userId int64, roleNames []string) (bool, error)
 	HasAnyRole(userId int64, roleNames []string) (bool, error)
@@ -30,9 +29,10 @@ func NewUserRoleRepository(_db *sql.DB) UserRoleRepository {
 
 func (u *UserRoleRepositoryImpl) GetUserRoles(userId int64) ([]*models.Role, error) {
 	query := `
-		SELECT r.id, r.name, r.description, r.created_at, r.updated_at
+		SELECT u.id, u.username, u.email, r.id, r.name, r.description
 		FROM user_roles ur
 		INNER JOIN roles r ON ur.role_id = r.id
+		JOIN users u ON ur.user_id = u.id
 		WHERE ur.user_id = ?`
 	rows, err := u.db.Query(query, userId)
 	if err != nil {
@@ -43,7 +43,7 @@ func (u *UserRoleRepositoryImpl) GetUserRoles(userId int64) ([]*models.Role, err
 	var roles []*models.Role
 	for rows.Next() {
 		role := &models.Role{}
-		if err := rows.Scan(&role.ID, &role.RoleName, &role.Description, &role.CreatedAt, &role.UpdatedAt); err != nil {
+		if err := rows.Scan(&role.UserId, &role.UserName, &role.Email, &role.RoleId, &role.RoleName, &role.Description); err != nil {
 			return nil, err
 		}
 		roles = append(roles, role)
@@ -54,6 +54,35 @@ func (u *UserRoleRepositoryImpl) GetUserRoles(userId int64) ([]*models.Role, err
 	}
 
 	return roles, nil
+}
+
+func (u *UserRoleRepositoryImpl) GetAllUserAndTheirRoles() ([]*models.UserRole, error) {
+
+	query := `SELECT u.id as userId, u.username, u.email, r.id as roleId, r.name, r.description
+		FROM user_roles ur
+		INNER JOIN roles r ON ur.role_id = r.id
+		JOIN users u ON ur.user_id = u.id`
+
+	rows, err := u.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userRoles []*models.UserRole
+	for rows.Next() {
+		userRole := &models.UserRole{}
+		if err := rows.Scan(&userRole.UserId, &userRole.UserName, &userRole.Email, &userRole.RoleId, &userRole.RoleName, &userRole.Description); err != nil {
+			return nil, err
+		}
+		userRoles = append(userRoles, userRole)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return userRoles, nil
 }
 
 func (u *UserRoleRepositoryImpl) AssignRoleToUser(userId int64, roleId int64) error {
@@ -72,50 +101,6 @@ func (u *UserRoleRepositoryImpl) RemoveRoleFromUser(userId int64, roleId int64) 
 		return err
 	}
 	return nil
-}
-
-func (u *UserRoleRepositoryImpl) GetUserPermissions(userId int64) ([]*models.Permission, error) {
-	query := `
-		SELECT p.id, p.name, p.description, p.resource, p.action, p.created_at, p.updated_at
-		FROM user_roles ur
-		INNER JOIN role_permissions rp ON ur.role_id = rp.role_id
-		INNER JOIN permissions p ON rp.permission_id = p.id
-		WHERE ur.user_id = ?`
-	rows, err := u.db.Query(query, userId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var permissions []*models.Permission
-	for rows.Next() {
-		permission := &models.Permission{}
-		if err := rows.Scan(&permission.ID, &permission.PermissionName, &permission.Description, &permission.Resource, &permission.Action, &permission.CreatedAt, &permission.UpdatedAt); err != nil {
-			return nil, err
-		}
-		permissions = append(permissions, permission)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return permissions, nil
-}
-
-func (u *UserRoleRepositoryImpl) HasPermission(userId int64, permissionName string) (bool, error) {
-	query := `
-		SELECT COUNT(*) > 0
-		FROM user_roles ur
-		INNER JOIN role_permissions rp ON ur.role_id = rp.role_id
-		INNER JOIN permissions p ON rp.permission_id = p.id
-		WHERE ur.user_id = ? AND p.name = ?`
-	var exists bool
-	err := u.db.QueryRow(query, userId, permissionName).Scan(&exists)
-	if err != nil {
-		return false, err
-	}
-	return exists, nil
 }
 
 func (u *UserRoleRepositoryImpl) HasRole(userId int64, roleName string) (bool, error) {
@@ -138,6 +123,8 @@ func (u *UserRoleRepositoryImpl) HasAllRoles(userId int64, roleNames []string) (
 		return true, nil // If no roles are specified, return true
 	}
 
+	fmt.Println("roleNames in repository layer:", roleNames)
+
 	query := `
 		SELECT COUNT(*) = ?
 		FROM user_roles ur
@@ -156,6 +143,8 @@ func (u *UserRoleRepositoryImpl) HasAllRoles(userId int64, roleNames []string) (
 		}
 		return false, err // Return any other error
 	}
+
+	fmt.Println("hasAllRoles>>>", hasAllRoles)
 
 	return hasAllRoles, nil
 }
