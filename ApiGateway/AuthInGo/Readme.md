@@ -368,3 +368,9 @@ data type incompitable
 * Be cautious when you use SERIEL in id column because is serieal is equivalent to
 "BIGINT UNSIGNED NOT NULL AUTO_INCREMENT UNIQUE" and in reference if you provide 
 int then you will get incompitable error.
+
+
+* Task to implement
+1. Try to implement an email confirmation mechanism for new user signup
+2. On a new User signup, people should get automatically role of 'user'
+3. Try to integrate any MFA mechanism like EMAIL OTP || SMS OTP || MFA APP

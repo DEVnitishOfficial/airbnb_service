@@ -145,7 +145,7 @@ func (u *UserRoleRepositoryImpl) HasAllRoles(userId int64, roleNames []string) (
 	// The first argument is the number of roles (len(roleNames))
 	// The second argument is the userId
 	// The remaining arguments are the elements of the roleNames slice
-	args := make([]interface{}, 0, 2+len(roleNames))
+	args := make([]interface{}, 0, 2+len(roleNames)) // defining the capacity of slice
 	args = append(args, len(roleNames), userId)
 	for _, roleName := range roleNames {
 		args = append(args, roleName)
