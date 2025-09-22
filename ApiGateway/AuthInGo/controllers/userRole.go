@@ -249,7 +249,7 @@ func (urc *UserRoleController) HasAllRolesController(w http.ResponseWriter, r *h
 
 func (urc *UserRoleController) HasAnyRoleController(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("HasAnyRoleController called in controller layer")
-	userIdStr := chi.URLParam(r, "id")
+	userIdStr := chi.URLParam(r, "userId")
 
 	fmt.Println("userId from URL param:", userIdStr)
 

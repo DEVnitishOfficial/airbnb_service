@@ -125,26 +125,43 @@ func (u *UserRoleRepositoryImpl) HasAllRoles(userId int64, roleNames []string) (
 
 	fmt.Println("roleNames in repository layer:", roleNames)
 
-	query := `
-		SELECT COUNT(*) = ?
-		FROM user_roles ur
-		INNER JOIN roles r ON ur.role_id = r.id
-		WHERE ur.user_id = ? AND r.name IN (?)
-		GROUP BY ur.user_id`
+	// 1. Construct the placeholders for the IN clause
+	// e.g., if len(roleNames) is 3, this creates "?,?,?"
+	placeholders := make([]string, len(roleNames))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+	inClause := strings.Join(placeholders, ",")
 
-	roleNamesStr := strings.Join(roleNames, ",")
+	// 2. Build the full query
+	query := fmt.Sprintf(`
+	SELECT COUNT(*) = ?
+	FROM user_roles ur
+	INNER JOIN roles r ON ur.role_id = r.id
+	WHERE ur.user_id = ? AND r.name IN (%s)
+	GROUP BY ur.user_id`, inClause)
 
-	row := u.db.QueryRow(query, len(roleNames), userId, roleNamesStr)
+	// 3. Prepare the arguments for the query
+	// The first argument is the number of roles (len(roleNames))
+	// The second argument is the userId
+	// The remaining arguments are the elements of the roleNames slice
+	args := make([]interface{}, 0, 2+len(roleNames))
+	args = append(args, len(roleNames), userId)
+	for _, roleName := range roleNames {
+		args = append(args, roleName)
+	}
+
+	// 4. Execute the query with the prepared arguments
+	row := u.db.QueryRow(query, args...)
 
 	var hasAllRoles bool
 	if err := row.Scan(&hasAllRoles); err != nil {
 		if err == sql.ErrNoRows {
-			return false, nil // No roles found for the user
+			fmt.Println("No rows returned from query, user does not have all roles.")
+			return false, nil
 		}
-		return false, err // Return any other error
+		return false, err
 	}
-
-	fmt.Println("hasAllRoles>>>", hasAllRoles)
 
 	return hasAllRoles, nil
 }
