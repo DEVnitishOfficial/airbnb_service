@@ -1,6 +1,7 @@
 import { CreationAttributes } from "sequelize";
 import Room from "../db/models/room";
 import BaseRepository from "./base.repository";
+import { Op } from "sequelize";
 
 
 class RoomRepository extends BaseRepository<Room> {
@@ -24,7 +25,7 @@ class RoomRepository extends BaseRepository<Room> {
             where : {
                 roomCategoryId,
                 dateOfAvailability : {
-                    $between : [startDate, endDate]
+                   [Op.between]: [startDate, endDate]
                 },
                 deletedAt : null
             }

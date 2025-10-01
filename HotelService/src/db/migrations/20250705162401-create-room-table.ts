@@ -9,6 +9,7 @@ module.exports = {
       hotel_id INT,
       room_no INT NOT NULL,
       date_of_availability DATE NOT NULL,
+      price DECIMAL(10, 2) NOT NULL,
       booking_id INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

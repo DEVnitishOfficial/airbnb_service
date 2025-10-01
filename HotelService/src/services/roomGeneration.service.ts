@@ -14,6 +14,8 @@ const roomRepository = new RoomRepository()
 
 export async function generateRoomsService(jobData: RoomGenerationJob) {
 
+    console.log('request recieved at service', jobData);
+
     let totalRoomsCreated = 0;
     let totalDatesProcessed = 0;
 
@@ -28,6 +30,7 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
     const startDate = new Date(jobData.startDate)
     const endDate = new Date(jobData.endDate)
 
+
     if (startDate >= endDate) {
         throw new BadRequesError("Start date must be before end date")
     }
@@ -37,6 +40,8 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
     }
 
     // total days for which we have to create rooms
+
+
     const totalDays = Math.floor((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
 
     logger.info(`Generating rooms for ${totalDays} days`)
@@ -48,7 +53,7 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
     while(currentDate <= endDate){
         const batchEndDate = new Date(currentDate);
 
-        batchEndDate.setDate(batchEndDate.getDate() + batchSize);
+        batchEndDate.setDate(batchEndDate.getDate() + batchSize - 1); // -1 because currentDate is inclusive
 
         if(batchEndDate > endDate){ // suppose we have to create rooms for 130 days and batch size is 100, then in second batch we have to create rooms for 30 days only but the above line batchEndDate.setDate..... will a batch of 200, this things i want to avoid that's why it's necessery to check endDate.
             batchEndDate.setTime(endDate.getTime());
@@ -57,10 +62,18 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
 
         const batchResult = await processDateBatch(roomCategory, currentDate, batchEndDate, jobData.priceOverride)
 
+        console.log('see the batch result', batchResult);
+
         totalRoomsCreated += batchResult.roomsCreated;
         totalDatesProcessed += batchResult.dateProcessed;
         
-        currentDate.setTime(batchEndDate.getTime());
+        currentDate.setTime(batchEndDate.getTime() + 1); // move to the next day after batchEndDate
+
+        // From the generateRoomsService we are encountring infinite loop because we are setting currentDate = batchEndDate and sometimes batchEndDate === endDate.
+
+        // This means currentDate <= endDate never becomes false, so the loop repeats infinitely.
+
+        // Solution: always advance currentDate to the next day after the batch: that's why added + 1 and for including current date used -1 on line No 56
     }
 
     return{
@@ -80,6 +93,9 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
 
     // Below code is the problem of n+1 query
     // TODO : use a better query to get rooms
+    // here we are making seperate db query for each day, if we have to create next 100 rooms
+    // then here we are making 100 db query just for cheking if the rooms are already existing on that date or not.
+
     // while(currentDate <= endDate){
     //     const existingRoom = await roomRepository.findRoomCategoryByIdAndDate(roomCategory.id, currentDate);
 
@@ -96,9 +112,14 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
     //     dateProcessed;
     // }
 
+
+
+
     /** Better query solution */
 
-
+    // How the below solution solve n+1 queries problem
+    //Instead of calling findRoomCategoryByIdAndDate for each day separately, fetch all existing rooms for the date range in one query:
+    
     const existingRooms = await roomRepository.findRoomsByCategoryAndDateRange(
         roomCategory.id,
         startDate,
@@ -107,7 +128,7 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
 
     // put them in a Set for quick lookup
     const existingDates = new Set(
-        existingRooms.map(r => r.dateOfAvailability.toISOString().split('T')[0])
+        existingRooms.map(r => new Date(r.dateOfAvailability).toISOString().split('T')[0])
     );
 
     while (currentDate <= endDate) {
@@ -118,6 +139,7 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
                 roomCategoryId: roomCategory.id,
                 dateOfAvailability: new Date(currentDate),
                 price: priceOverride || roomCategory.price,
+                roomNo: 1 + roomsCreated, // Assigning room number sequentially
                 createdAt : new Date(),
                 updatedAt : new Date(),
                 deletedAt : null
