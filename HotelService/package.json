@@ -30,9 +30,11 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "bullmq": "^5.59.0",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "http-status-codes": "^2.3.0",
+    "ioredis": "^5.8.0",
     "mysql2": "^3.14.1",
     "sequelize": "^6.37.7",
     "uuid": "^11.1.0",

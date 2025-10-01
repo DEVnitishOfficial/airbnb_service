@@ -880,6 +880,7 @@ These all method we can re-use it because the repository layer nothing have to d
 1. first create a file named base.repository.ts
     visit file for more information and detail that how we have implemented the common base repository and explanation. 
 
+## In previous commit we did room generation synchronously but now we will generate room asynchronusly like we will add job to the redis queue and then processor or worker take the task from that queue and one by one they will execute the task.
 
 
 
