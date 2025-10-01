@@ -6,6 +6,7 @@ import { genericErrorHandler } from './middlewares/error.middleware';
 import logger from './config/logger.config';
 import { attachCorrelationIdMiddleware } from './middlewares/correlation.middleware';
 import sequelize from './db/models/sequelize';
+import { setupRoomGenerationWorker } from './processors/roomGeneration.processors';
 
 
 const app = express();
@@ -24,5 +25,6 @@ app.listen(serverConfig.PORT, async () => {
     logger.info("press Ctrl + C to stop the server", { "name": "dev-server" })
     await sequelize.authenticate(); // this will check the connection to the database and if the connection is successful then it will return a promise otherwise it will throw an error.
     logger.info("Database connected successfully");
+    await setupRoomGenerationWorker();
 
 });
