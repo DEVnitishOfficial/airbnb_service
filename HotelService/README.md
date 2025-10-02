@@ -883,5 +883,9 @@ These all method we can re-use it because the repository layer nothing have to d
 ## In previous commit we did room generation synchronously but now we will generate room asynchronusly like we will add job to the redis queue and then processor or worker take the task from that queue and one by one they will execute the task.
 
 
+## We have generated room asynchronously using the redis(ioredis) and the queue(bullmq) for next 3 months i.e for 90 days, now we want to maintain this 90 days windows that's why here we need cron job expression which will maintain the 90 days window and every day it will generate rooms after 12:00pm for next day.
+
+**So our next goal is to execute the CRON job ---> for this we will use node-cron** 
+
 
 

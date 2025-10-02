@@ -14,7 +14,7 @@ const roomRepository = new RoomRepository()
 
 export async function generateRoomsService(jobData: RoomGenerationJob) {
 
-    console.log('request recieved at service', jobData);
+    console.log(' service', jobData);
 
     let totalRoomsCreated = 0;
     let totalDatesProcessed = 0;
@@ -22,6 +22,7 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
     // check if the category exists
 
     const roomCategory = await roomCategoryRepository.findById(jobData.roomCategoryId);
+
 
     if (!roomCategory) {
         throw new NotFoundError(`Room category with id ${jobData.roomCategoryId} not found`)
@@ -48,12 +49,14 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
 
     const batchSize = jobData.batchSize || 100 // put this one in the config or .env
 
+    console.log('see you batch size>>>>>>>>', batchSize);
+
     const currentDate = new Date(startDate)
 
     while(currentDate <= endDate){
         const batchEndDate = new Date(currentDate);
 
-        batchEndDate.setDate(batchEndDate.getDate() + batchSize - 1); // -1 because currentDate is inclusive
+        batchEndDate.setDate(batchEndDate.getDate() + batchSize); // -1 because currentDate is inclusive
 
         if(batchEndDate > endDate){ // suppose we have to create rooms for 130 days and batch size is 100, then in second batch we have to create rooms for 30 days only but the above line batchEndDate.setDate..... will a batch of 200, this things i want to avoid that's why it's necessery to check endDate.
             batchEndDate.setTime(endDate.getTime());
@@ -126,12 +129,14 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
         endDate
     );
 
+    console.log('see the existings room',existingRooms);
+
     // put them in a Set for quick lookup
     const existingDates = new Set(
         existingRooms.map(r => new Date(r.dateOfAvailability).toISOString().split('T')[0])
     );
 
-    while (currentDate <= endDate) {
+    while (currentDate < endDate) { // if you want to include the last date as well then use the = operator here like  while (currentDate <= endDate) {
         const dateKey = currentDate.toISOString().split('T')[0];
         if (!existingDates.has(dateKey)) {
             roomsToCreate.push({
