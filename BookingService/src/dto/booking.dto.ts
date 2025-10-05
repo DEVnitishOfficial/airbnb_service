@@ -3,4 +3,7 @@ export type CreateBookingDTO = {
     hotelId: number;
     bookingAmount: number;
     totalGuests: number;
+    checkInDate: Date;
+    checkOutDate: Date;
+    roomCategoryId: number;
 }

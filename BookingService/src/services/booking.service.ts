@@ -5,10 +5,37 @@ import { generateIdempotencyKey } from "../utils/helpers/generateIdempotencyKey"
 import PrismaClient from "../prisma/client";
 import { serverConfig } from "../config";
 import { redlock } from "../config/redis.config";
+import { getAvailableRooms, updateBookingIdToRoom } from "../api/hotel.api";
+
+ type AvailableRoom = {
+        id : number;
+        roomCategoryId : number;
+        dateOfAvailability : Date;
+    }
 
 export async function createBookingService(createBookingDTO: CreateBookingDTO) {
     const ttl = serverConfig.LOCK_TTL;
-    const bookingResource = `booking:${createBookingDTO.hotelId}`;
+    // const bookingResource = `booking:${createBookingDTO.hotelId}`; // TODO: modify the lock to use available room ids instead of hotelId
+
+    const availableRooms = await getAvailableRooms(
+        createBookingDTO.roomCategoryId,
+        createBookingDTO.checkInDate,
+        createBookingDTO.checkOutDate,
+    );
+
+    console.log("availableRooms : >>>>>>", availableRooms);
+
+    // implemented todo for locking on available room ids instead of hotelId
+    const bookingResource = `booking:${availableRooms.data.map((room: any) => room.id).join(",")}`;
+
+    const checkOutDate = new Date(createBookingDTO.checkOutDate);
+    const checkInDate = new Date(createBookingDTO.checkInDate);
+
+    const totalNights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (!availableRooms || availableRooms.length === 0 || availableRooms.length < totalNights) {
+        throw new NotFoundError("No rooms available for the selected category and date range");
+    }
 
     const booking = await PrismaClient.booking.findFirst({
         where: {
@@ -27,10 +54,15 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
                 hotelId: createBookingDTO.hotelId,
                 bookingAmount: createBookingDTO.bookingAmount,
                 totalGuests: createBookingDTO.totalGuests,
+                checkInDate: new Date(createBookingDTO.checkInDate),
+                checkOutDate: new Date(createBookingDTO.checkOutDate),
+                roomCategoryId: createBookingDTO.roomCategoryId
             });
 
             const idempotencyKey = generateIdempotencyKey();
             await createIdempotencyKey(idempotencyKey, booking.id);
+
+            await updateBookingIdToRoom(booking.id, availableRooms.data.map((room: AvailableRoom) => room.id));
 
             return {
                 bookingId: booking.id,
@@ -57,7 +89,8 @@ export async function confirmBookingService(idempotencyKey: string) {
             throw new BadRequestError("Booking already finalized");
         }
         const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
-        await finalizeIdempotencyKey(tx, idempotencyKey);
+        await finalizeIdempotencyKey(tx, idempotencyKey); 
+        // Todo : mark the rooms as null if booking is cancelled or failed
         return booking;
     });
 }

@@ -4,7 +4,8 @@
   "main": "server.ts",
   "scripts": {
     "start": "ts-node src/server.ts",
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "seed": "ts-node src/prisma/seeders/seedBookings.ts"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
+    "axios": "^1.12.2",
     "bullmq": "^5.53.2",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",

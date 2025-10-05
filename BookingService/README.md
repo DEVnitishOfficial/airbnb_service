@@ -603,3 +603,15 @@ Used to test the setup by sending a sample job to the queue.
 ---
 
 
+# Now we are going to connect everything : 
+
+* In the booking service i have changed booking model checkInDate checkOutDate and roomCategoryId
+* And in the HotelService room table we have already the bookingId which connect booking to rooms
+
+* Now before creating the booking, we have to check is the rooms are available for particular roomCategoryId within certain checkIn and checkout date range or not, how to check it?
+
+Ans : if we have checkInDate and checkOutDate but don't have the bookingId in the rooms table then that particular room is available and we can create booking for that roomCategoryId with specified date range according to requirement.
+
+    here booking service will make an api call to the hotelService to see if any rooms are available for a date range or not, and then according to the return set of value we will create the bookings.
+
+# Till so far we don't exposed any api to find the roomCategoryId and dateRange so in the HotelService i will work to expose that api

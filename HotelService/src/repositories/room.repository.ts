@@ -55,6 +55,31 @@ class RoomRepository extends BaseRepository<Room> {
             latestDate: new Date(result.latestDate)
         }));
     }
+
+    async findByRoomCategoryIdAndDateRange(roomCategoryId:number, checkInDate:Date, checkOutDate:Date){
+        return await this.model.findAll({
+            where : {
+                roomCategoryId,
+                bookingId : null,
+                dateOfAvailability : {
+                   [Op.between]: [checkInDate, checkOutDate]
+                }
+            }
+        })
+    }
+
+    async updateBookingIdToRooms(roomIds:number[], bookingId:number){
+        return await this.model.update(
+            { bookingId },
+            {
+                where: {
+                    id: {
+                        [Op.in]: roomIds
+                    }
+                }
+            }
+        );
+    }
 }
 
 export default RoomRepository;

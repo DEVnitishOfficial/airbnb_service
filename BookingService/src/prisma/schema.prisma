@@ -20,9 +20,12 @@ model Booking{
   id                Int   @id         @default(autoincrement())
   userId            Int
   hotelId           Int
+  checkInDate       DateTime
+  checkOutDate      DateTime
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   bookingAmount     Int
+  roomCategoryId    Int
   status            BookingStatus     @default(PENDING)
   totalGuests       Int
   idempotencyKey    IdempotencyKey? // idempotencyKey is a virtual field that references the IdempotencyKey model, that's why it will not appear in the database.
@@ -43,4 +46,7 @@ enum BookingStatus{
   PENDING
   CONFIRMED
   CANCELLED
+  COMPLETED
+  CHECKED_IN
+  CHECKED_OUT
 }
