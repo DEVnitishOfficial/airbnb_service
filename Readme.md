@@ -108,5 +108,33 @@ Solution :
 
 # Notification service
 
+# Aggregate rating : 
+
+In this commit i have added the caculation of aggreagte rating of a particular hotel with cron job which in test mode calculate every 30 sec and in production env calculate hotel review hourly.
+
+and solve a bug which took more than 4 hours to match the time basically the mysql by default store time internally in UTC format but we can see them in IST(system) format, so the problem occur when we make query from my server to pickup the recent review which has is_synced false see the below query : 
+
+```go
+cutoff := time.Now().UTC()
+	log.Printf("ProcessPendingRatings: running cutoff=%s\n", cutoff.Format(time.RFC3339))
+
+rows, err := s.DB.QueryContext(ctx, `
+SELECT hotel_id, SUM(rating) AS total_rating, COUNT(*) AS cnt
+FROM reviews
+WHERE is_synced = FALSE AND created_at <= ?
+GROUP BY hotel_id
+`, cutoff)
+```
+
+I thought if it store it in the local time then make the cutoff call to local so i did cutoff := time.Now().Local() but it's also doesn't work because whenever we make querey our query is interecting with the stored type i.e the UTC internally, but it show us in localtime.
+
+So lastly i decide to make everything in UTC then i converted mysql to the UTC, now it's internally stores in utc and also show us in UTC and form server we make call in UTC so everything works smoothly now.
+
+if you want to check which timeZone use you mysql workbench you can run below command
+```sql
+SELECT @@global.time_zone, @@session.time_zone;
+```
+if it shows system means you are using the local time but if it show +00:00	+00:00 then you are using the UTC time.
+
 
 
