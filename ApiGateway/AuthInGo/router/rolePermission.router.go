@@ -18,9 +18,9 @@ func NewRolePermissionRouter(_rolePermissionController controllers.RolePermissio
 }
 
 func (rpr *RolePermissionRouter) Register(r chi.Router) {
-	r.Get("/rolepermission/getbyid/{id}", rpr.RolePermissionController.GetRolePermissionByIdController)
-	r.Get("/rolepermission/getbyroleid/{id}", rpr.RolePermissionController.GetRolePermissionByRoleIdController)
-	r.Get("/rolepermission/getall", rpr.RolePermissionController.GetAllRolePermissionsController)
-	r.With(middlewares.AssignPermissionRequestValidator).Post("/rolepermission/addbyroleid/{id}", rpr.RolePermissionController.AddPermissionToRoleController)
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("admin")).Get("/rolepermission/getbyid/{id}", rpr.RolePermissionController.GetRolePermissionByIdController)
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("admin")).Get("/rolepermission/getbyroleid/{id}", rpr.RolePermissionController.GetRolePermissionByRoleIdController)
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("admin")).Get("/rolepermission/getall", rpr.RolePermissionController.GetAllRolePermissionsController)
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("admin"), middlewares.AssignPermissionRequestValidator).Post("/rolepermission/addbyroleid/{id}", rpr.RolePermissionController.AddPermissionToRoleController)
 	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAllRoles("admin"), middlewares.RemovePermissionRequestValidator).Post("/rolepermission/removebyroleid/{id}", rpr.RolePermissionController.RemovePermissionFromRoleController)
 }

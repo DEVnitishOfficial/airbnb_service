@@ -1,6 +1,6 @@
 
 MIGRATION_FOLDER := db/migrations
-DB_URL := root:mysql@1234&?@tcp(127.0.0.1:3306)/Airbnb_auth_dev
+DB_URL := "root:mysql@1234&?@tcp(127.0.0.1:3306)/Airbnb_auth_dev"
 
 run:  # make run
 	go run main.go

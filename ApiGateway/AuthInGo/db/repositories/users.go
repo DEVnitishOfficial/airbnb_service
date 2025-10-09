@@ -178,6 +178,24 @@ func (u *UserRepositoryImpl) Create(username string, email string, hashedPasswor
 		return nil, rowErr
 	}
 
+	userID, _ := result.LastInsertId()
+	roleName := "user"
+
+	// get role ID dynamically
+	var roleID int64
+	err = u.db.QueryRow("SELECT id FROM roles WHERE name = ?", roleName).Scan(&roleID)
+	if err != nil {
+		fmt.Println("Error fetching role ID:", err)
+		return nil, err
+	}
+
+	// assign role
+	_, err = u.db.Exec("INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)", userID, roleID)
+	if err != nil {
+		fmt.Println("Error assigning role:", err)
+		return nil, err
+	}
+
 	user := &models.User{
 		ID:       lastInsertID,
 		Username: username,
