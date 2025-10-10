@@ -71,6 +71,11 @@ func (s *ReviewBatchProcessorImpl) ProcessPendingRatings(ctx context.Context) er
 		oldAvg, _ := hotelData.Rating.Float64()
 		oldCnt := hotelData.RatingCount
 		newCount := oldCnt + a.Count
+		// weighted average calculation
+		// newAvg = (oldAvg * oldCnt + a.Sum) / newCount
+		// where a.Sum is the sum of new ratings, a.Count is the count of new ratings
+		// and newCount = oldCnt + a.Count
+		// This ensures that larger counts have more influence on the new average.
 		newAvg := ((oldAvg * float64(oldCnt)) + a.Sum) / float64(newCount)
 
 		if err := s.hotelClient.UpdateHotelRating(a.HotelID, newAvg, newCount); err != nil {
