@@ -2,6 +2,7 @@ package router
 
 import (
 	"AuthInGo/controllers"
+	"AuthInGo/gateway"
 	"AuthInGo/middlewares"
 	"AuthInGo/utils"
 
@@ -30,6 +31,8 @@ func SetUpRouter(UserRouter Router, RoleRouter Router, PermissionRouter Router, 
 	PermissionRouter.Register(chiRouter)
 	RolePermissionRouter.Register(chiRouter)
 	UserRoleRouter.Register(chiRouter)
+
+	chiRouter.Mount("/", gateway.NewGatewayRouter())
 
 	return chiRouter
 }
