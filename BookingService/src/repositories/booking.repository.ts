@@ -87,3 +87,29 @@ export async function finalizeIdempotencyKey(tx: Prisma.TransactionClient, key: 
     })
     return idempotencyKey;
 }
+
+
+export async function checkBookingCreatorAndCurrentUserIsSame(tx: Prisma.TransactionClient, key: string, currentUserId: string) {
+    const bookingInfo = await tx.$queryRaw<Array<{
+        idempotencyKey: string;
+        bookingId: number;
+        finalized: boolean;
+        status: string;
+        userId: string | null;
+    }>>(
+        Prisma.raw(`select idk.idemKey as idempotencyKey, idk.bookingId, idk.finalized, b.status, b.userId from IdempotencyKey idk join booking b 
+on idk.bookingId = b.id  where idemKey = '${key}';`)
+    )
+
+
+    if (!bookingInfo || bookingInfo.length === 0) {
+        throw new BadRequestError("Idempotency key not found");
+    }
+
+
+    if (String(bookingInfo[0].userId) !== String(currentUserId)) {
+        return false;
+    }
+
+    return true;
+}       

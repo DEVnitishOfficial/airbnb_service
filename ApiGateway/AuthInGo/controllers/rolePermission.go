@@ -119,7 +119,6 @@ func (rpc *RolePermissionController) AddPermissionToRoleController(w http.Respon
 	}
 	utils.WriteJSONSuccessResponse(w, http.StatusOK, "Permission added to role successfully", rolePermission)
 	fmt.Println("Permission added to role successfully:", rolePermission)
-	return
 }
 
 func (rpc *RolePermissionController) RemovePermissionFromRoleController(w http.ResponseWriter, r *http.Request) {

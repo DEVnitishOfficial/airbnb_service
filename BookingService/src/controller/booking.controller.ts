@@ -15,7 +15,12 @@ export async function  createBookingHandler(req: Request, res: Response, next: N
 
 export async function confirmBookingHandler(req: Request, res: Response, next: NextFunction) {
     // Call the service layer to confirm a booking
-    const booking = await confirmBookingService(req.params.idempotencyKey);
+
+    const idempotencyKey = req.params.idempotencyKey;
+    const currentUserId = req.headers['x-user-id']
+
+
+    const booking = await confirmBookingService(idempotencyKey, String(currentUserId));
     // Send a success response with the confirmed booking data
     res.status(StatusCodes.OK).json({
         success: true,

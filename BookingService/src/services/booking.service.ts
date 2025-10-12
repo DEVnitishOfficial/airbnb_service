@@ -1,5 +1,5 @@
 import { CreateBookingDTO } from "../dto/booking.dto";
-import { confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock } from "../repositories/booking.repository";
+import { checkBookingCreatorAndCurrentUserIsSame, confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock } from "../repositories/booking.repository";
 import { BadRequestError, internalServerError, NotFoundError } from "../utils/errors/app.error";
 import { generateIdempotencyKey } from "../utils/helpers/generateIdempotencyKey";
 import PrismaClient from "../prisma/client";
@@ -33,7 +33,7 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
 
     const totalNights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24));
 
-    if (!availableRooms || availableRooms.length === 0 || availableRooms.length < totalNights) {
+    if (!availableRooms || availableRooms.data.length === 0 || availableRooms.data.length < totalNights) {
         throw new NotFoundError("No rooms available for the selected category and date range");
     }
 
@@ -41,11 +41,19 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
         where: {
             userId: createBookingDTO.userId,
             hotelId: createBookingDTO.hotelId,
+            checkInDate: {
+                gte: checkInDate,
+                lte: checkOutDate
+            },
+            checkOutDate: {
+                gte: checkInDate,
+                lte: checkOutDate
+            }
         }
     })
 
     if (booking) {
-        throw new BadRequestError(`You have already created booking with the same userId ${createBookingDTO.userId} and hotelId : ${createBookingDTO.hotelId}`)
+        throw new BadRequestError(`You have already created booking with the same userId ${createBookingDTO.userId} and hotelId : ${createBookingDTO.hotelId} with checkInDate : ${createBookingDTO.checkInDate} and checkOutDate : ${createBookingDTO.checkOutDate} please confirm the booking.`);
     } else {
         try {
             await redlock.acquire([bookingResource], ttl); // here redlock takes two parameters, the first is an array of resources to lock, and the second is the TTL for the lock in milliseconds.
@@ -77,7 +85,11 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
 
 }
 
-export async function confirmBookingService(idempotencyKey: string) {
+export async function confirmBookingService(idempotencyKey: string, currentUserId:string) {
+
+    if (!idempotencyKey || !currentUserId){
+        throw new BadRequestError("Idempotency key or UserId not provided");
+    }
 
     return await PrismaClient.$transaction(async (tx) => {
         // Check if the idempotency key exists and is not finalized
@@ -88,6 +100,14 @@ export async function confirmBookingService(idempotencyKey: string) {
         if (idempotencyKeyData.finalized) {
             throw new BadRequestError("Booking already finalized");
         }
+
+        // check the user if booking user is the same user who is confirming the booking
+        const confirmedUser = await checkBookingCreatorAndCurrentUserIsSame(tx, idempotencyKey, currentUserId);
+        console.log('see confirmed users', confirmedUser);
+        if(!confirmedUser){
+            throw new BadRequestError("You are not authorized to confirm this booking");
+        }
+
         const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
         await finalizeIdempotencyKey(tx, idempotencyKey); 
         // Todo : mark the rooms as null if booking is cancelled or failed
