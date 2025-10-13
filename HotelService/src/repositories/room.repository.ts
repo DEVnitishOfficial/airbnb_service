@@ -80,6 +80,18 @@ class RoomRepository extends BaseRepository<Room> {
             }
         );
     }
+
+    async deleteBookingIdFromRooms(bookingId:number){
+        return await this.model.update(
+            { bookingId: null },
+            {
+                where: {
+                    bookingId
+                }
+            }
+        );
+    }
+
 }
 
 export default RoomRepository;

@@ -112,4 +112,17 @@ on idk.bookingId = b.id  where idemKey = '${key}';`)
     }
 
     return true;
-}       
+}    
+
+
+export async function updateExpiryTimeOfCreatedBooking(bookingId: number, expiryTime: Date) {
+    const booking = await PrismaClient.booking.update({
+        where: {
+            id: bookingId
+        },
+        data: {
+            expiredAt: expiryTime
+        }
+    })
+    return booking;
+}

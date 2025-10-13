@@ -24,6 +24,8 @@ model Booking{
   checkOutDate      DateTime
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  expiredAt         DateTime?
+  releaseAt         DateTime?         // releaseAt is the time when the booking is released by cron job after expiry time.
   bookingAmount     Int
   roomCategoryId    Int
   status            BookingStatus     @default(PENDING)
@@ -49,4 +51,7 @@ enum BookingStatus{
   COMPLETED
   CHECKED_IN
   CHECKED_OUT
+  EXPIRED
+  FAILED
+  REFUNDED
 }

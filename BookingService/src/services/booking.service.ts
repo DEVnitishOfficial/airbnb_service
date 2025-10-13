@@ -1,5 +1,5 @@
 import { CreateBookingDTO } from "../dto/booking.dto";
-import { checkBookingCreatorAndCurrentUserIsSame, confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock } from "../repositories/booking.repository";
+import { checkBookingCreatorAndCurrentUserIsSame, confirmBooking, createBooking, createIdempotencyKey, finalizeIdempotencyKey, getIdemPotencyKeyWithLock, updateExpiryTimeOfCreatedBooking } from "../repositories/booking.repository";
 import { BadRequestError, internalServerError, NotFoundError } from "../utils/errors/app.error";
 import { generateIdempotencyKey } from "../utils/helpers/generateIdempotencyKey";
 import PrismaClient from "../prisma/client";
@@ -15,7 +15,6 @@ import { getAvailableRooms, updateBookingIdToRoom } from "../api/hotel.api";
 
 export async function createBookingService(createBookingDTO: CreateBookingDTO) {
     const ttl = serverConfig.LOCK_TTL;
-    // const bookingResource = `booking:${createBookingDTO.hotelId}`; // TODO: modify the lock to use available room ids instead of hotelId
 
     const availableRooms = await getAvailableRooms(
         createBookingDTO.roomCategoryId,
@@ -70,6 +69,13 @@ export async function createBookingService(createBookingDTO: CreateBookingDTO) {
             const idempotencyKey = generateIdempotencyKey();
             await createIdempotencyKey(idempotencyKey, booking.id);
 
+            // set the expiry to the created booking from time of creation plus 10 minutes
+            const expiryTime = new Date(Date.now() + 10 * 60 * 1000);
+
+            await updateExpiryTimeOfCreatedBooking(booking.id, expiryTime);
+
+            
+            // call hotel service to mark the rooms as booked by adding bookingId to the rooms table
             await updateBookingIdToRoom(booking.id, availableRooms.data.map((room: AvailableRoom) => room.id));
 
             return {
@@ -92,7 +98,9 @@ export async function confirmBookingService(idempotencyKey: string, currentUserI
     }
 
     return await PrismaClient.$transaction(async (tx) => {
-        // Check if the idempotency key exists and is not finalized
+
+        try{
+            // Check if the idempotency key exists and is not finalized
         const idempotencyKeyData = await getIdemPotencyKeyWithLock(tx, idempotencyKey);
         if (!idempotencyKeyData) {
             throw new NotFoundError("Idempotency key not found");
@@ -112,5 +120,9 @@ export async function confirmBookingService(idempotencyKey: string, currentUserI
         await finalizeIdempotencyKey(tx, idempotencyKey); 
         // Todo : mark the rooms as null if booking is cancelled or failed
         return booking;
+        }catch(error){
+
+        }
+        
     });
 }
