@@ -21,7 +21,7 @@ export async function startRoomSchedulerCronJob() : Promise<void> {
         return;
     }
 
-     // Schedule job to run every minute
+     // Schedule job to run every minute in testing, every day at midnight in production
     cronJob = cron.schedule(serverConfig.ROOM_CRON, async () => {
         logger.info('Starting room availability extension check');
         await extendRoomAvailability()

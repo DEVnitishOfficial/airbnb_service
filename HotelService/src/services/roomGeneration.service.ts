@@ -49,34 +49,27 @@ export async function generateRoomsService(jobData: RoomGenerationJob) {
 
     const batchSize = jobData.batchSize || 100 // put this one in the config or .env
 
-    console.log('see you batch size>>>>>>>>', batchSize);
 
-    const currentDate = new Date(startDate)
+    // const currentDate = new Date(startDate)
 
-    while(currentDate <= endDate){
-        const batchEndDate = new Date(currentDate);
+    while(startDate <= endDate){
+        const batchEndDate = new Date(startDate);
 
-        batchEndDate.setDate(batchEndDate.getDate() + batchSize); // -1 because currentDate is inclusive
+        batchEndDate.setDate(batchEndDate.getDate() + batchSize); 
 
         if(batchEndDate > endDate){ // suppose we have to create rooms for 130 days and batch size is 100, then in second batch we have to create rooms for 30 days only but the above line batchEndDate.setDate..... will a batch of 200, this things i want to avoid that's why it's necessery to check endDate.
             batchEndDate.setTime(endDate.getTime());
         }
 
 
-        const batchResult = await processDateBatch(roomCategory, currentDate, batchEndDate, jobData.priceOverride)
+        const batchResult = await processDateBatch(roomCategory, startDate, batchEndDate, jobData.priceOverride)
 
         console.log('see the batch result', batchResult);
 
         totalRoomsCreated += batchResult.roomsCreated;
         totalDatesProcessed += batchResult.dateProcessed;
-        
-        currentDate.setTime(batchEndDate.getTime() + 1); // move to the next day after batchEndDate
 
-        // From the generateRoomsService we are encountring infinite loop because we are setting currentDate = batchEndDate and sometimes batchEndDate === endDate.
-
-        // This means currentDate <= endDate never becomes false, so the loop repeats infinitely.
-
-        // Solution: always advance currentDate to the next day after the batch: that's why added + 1 and for including current date used -1 on line No 56
+        startDate.setTime(batchEndDate.getTime() + 1); // move to the next day after batchEndDate
     }
 
     return{
@@ -152,12 +145,12 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
         }
         currentDate.setDate(currentDate.getDate() + 1);
         dateProcessed++;
+        roomsCreated++
     }
 
     if (roomsToCreate.length > 0) {
          logger.info(`Creating ${roomsToCreate.length} rooms`);
         await roomRepository.bulkCreate(roomsToCreate)
-        roomsCreated += roomsToCreate.length;
     }
 
     return{

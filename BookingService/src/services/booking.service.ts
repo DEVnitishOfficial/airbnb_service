@@ -6,6 +6,7 @@ import PrismaClient from "../prisma/client";
 import { serverConfig } from "../config";
 import { redlock } from "../config/redis.config";
 import { getAvailableRooms, updateBookingIdToRoom } from "../api/hotel.api";
+import axios from "axios";
 
  type AvailableRoom = {
         id : number;
@@ -98,10 +99,10 @@ export async function confirmBookingService(idempotencyKey: string, currentUserI
     }
 
     return await PrismaClient.$transaction(async (tx) => {
-
+        let idempotencyKeyData;
         try{
             // Check if the idempotency key exists and is not finalized
-        const idempotencyKeyData = await getIdemPotencyKeyWithLock(tx, idempotencyKey);
+            idempotencyKeyData = await getIdemPotencyKeyWithLock(tx, idempotencyKey);
         if (!idempotencyKeyData) {
             throw new NotFoundError("Idempotency key not found");
         }
@@ -115,13 +116,14 @@ export async function confirmBookingService(idempotencyKey: string, currentUserI
         if(!confirmedUser){
             throw new BadRequestError("You are not authorized to confirm this booking");
         }
-
         const booking = await confirmBooking(tx, idempotencyKeyData.bookingId);
-        await finalizeIdempotencyKey(tx, idempotencyKey); 
-        // Todo : mark the rooms as null if booking is cancelled or failed
-        return booking;
+            await finalizeIdempotencyKey(tx, idempotencyKey); 
+            return booking;
         }catch(error){
-
+            await axios.post('http://localhost:3001/api/v1/rooms/release', {
+            bookingId: idempotencyKeyData?.bookingId,
+        });
+        console.log('error in confirming booking : ', error);
         }
         
     });
