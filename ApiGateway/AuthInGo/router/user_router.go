@@ -23,4 +23,5 @@ func (ur *UserRouter) Register(r chi.Router) {
 	r.With(middlewares.UserCreateRequestValidator).Post("/signup", ur.UserController.CreateUser)
 	r.With(middlewares.UserLoginRequestValidator).Post("/signin", ur.UserController.LoginUser)
 	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).Get("/getbyid", ur.UserController.GetUserById) // make query like this http://localhost:3002/getbyid?id=1
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).Post("/getbulkinfobyids", ur.UserController.GetBulkUserInfoByIdsController)
 }

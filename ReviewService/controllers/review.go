@@ -137,13 +137,16 @@ func (rc *ReviewController) GetReviewsByUserId(w http.ResponseWriter, r *http.Re
 func (rc *ReviewController) GetReviewsByHotelId(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Fetching reviews by hotel ID in ReviewController")
 
+	authHeader := r.Header.Get("Authorization")
+	fmt.Println("Authorization Header>>>:", authHeader)
+
 	hotelId := r.URL.Query().Get("hotel_id")
 	if hotelId == "" {
 		utils.WriteJsonErrorResponse(w, http.StatusBadRequest, "Hotel ID is required", fmt.Errorf("missing hotel ID"))
 		return
 	}
 
-	reviews, err := rc.ReviewService.GetReviewsByHotelId(hotelId)
+	reviews, err := rc.ReviewService.GetReviewsByHotelId(hotelId, authHeader)
 	if err != nil {
 		utils.WriteJsonErrorResponse(w, http.StatusInternalServerError, "Failed to fetch reviews by hotel ID", err)
 		return

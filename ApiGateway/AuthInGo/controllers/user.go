@@ -123,3 +123,26 @@ func (uc *UserController) LoginUser(w http.ResponseWriter, r *http.Request) {
 	utils.WriteJSONSuccessResponse(w, http.StatusOK, "User loggedIn successfully", jwtToken)
 
 }
+
+func (uc *UserController) GetBulkUserInfoByIdsController(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("GetBulkUserInfoByIdsController is called in UserController")
+
+	// Extract user IDs from the request body (as JSON array)
+	var userIds []int64
+	err := utils.ReadJSONBody(r, &userIds)
+
+	fmt.Println("User IDs received in controller:", userIds)
+
+	if err != nil {
+		utils.WriteJSONErrorResponse(w, http.StatusBadRequest, "Invalid request payload", err)
+		return
+	}
+
+	users, err := uc.userService.GetBulkUserInfoByIdsService(userIds)
+	if err != nil {
+		utils.WriteJSONErrorResponse(w, http.StatusInternalServerError, "Failed to fetch users", err)
+		return
+	}
+
+	utils.WriteJSONSuccessResponse(w, http.StatusOK, "Users fetched successfully", users)
+}

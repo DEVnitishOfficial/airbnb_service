@@ -25,3 +25,11 @@ type ReviewResponseDTO struct {
 	DeletedAt *string `json:"deleted_at,omitempty"`
 	IsSynced  bool    `json:"is_synced"`
 }
+type UserDTO struct {
+	Id        int64  `json:"id"`
+	UserName  string `json:"username"`
+	Email     string `json:"email"`
+	Password  string `json:"password"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+}

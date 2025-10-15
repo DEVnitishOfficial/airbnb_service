@@ -7,6 +7,7 @@ import (
 	"AuthInGo/models"
 	"AuthInGo/utils"
 	"fmt"
+	"strconv"
 
 	// "github.com/golang-jwt/jwt"
 	"github.com/golang-jwt/jwt/v5"
@@ -18,6 +19,7 @@ type UserService interface {
 	GetUserById(id string) (*models.User, error)
 	CreateUser(payload *dto.CreateUserRequestDto) (*models.User, error)
 	LoginUser(payload *dto.LoginUserRequestDto) (string, error)
+	GetBulkUserInfoByIdsService(ids []int64) (map[int64]*models.User, error)
 }
 
 // The UserServiceImpl struct has a field named userRepository.
@@ -116,4 +118,19 @@ func (u *UserServiceImpl) LoginUser(payload *dto.LoginUserRequestDto) (string, e
 	fmt.Println("JWT TOKEN", tokenString)
 	return tokenString, nil
 
+}
+
+func (u *UserServiceImpl) GetBulkUserInfoByIdsService(ids []int64) (map[int64]*models.User, error) {
+	fmt.Println("Fetching bulk user info by IDs in UserService")
+
+	users := make(map[int64]*models.User)
+	for _, id := range ids {
+		user, err := u.userRepository.GetById(strconv.FormatInt(id, 10))
+		if err != nil {
+			fmt.Println("Error fetching user by ID:", err)
+			return nil, err
+		}
+		users[id] = user
+	}
+	return users, nil
 }

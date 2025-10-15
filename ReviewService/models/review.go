@@ -12,3 +12,11 @@ type Review struct {
 	DeletedAt *string
 	IsSynced  bool
 }
+type ReviewWithUser struct {
+	UserId   int64
+	Username string
+	Email    string
+	Comment  string
+	Rating   int
+	HotelId  int64
+}

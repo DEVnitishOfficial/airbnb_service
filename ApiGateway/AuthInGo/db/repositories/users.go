@@ -4,6 +4,7 @@ import (
 	"AuthInGo/models"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 // Similir kind of implementation done in typescript for better understanding of go code.
@@ -81,6 +82,7 @@ type UserRepository interface {
 	GetAll() ([]*models.User, error)
 	DeleteById(id int64) error
 	UpdateById(id int64, user *models.User) (*models.User, error)
+	GetBulkUserInfoByIds(ids []int64) (map[int64]*models.User, error)
 }
 
 // similir to class in typescript, here in go it only take properties not consturctor and methods
@@ -256,4 +258,44 @@ func (u *UserRepositoryImpl) GetByEmail(email string) (*models.User, error) {
 	}
 	fmt.Println("User fetched successfully:", user)
 	return user, nil
+}
+
+// Get userInfo by ID in bulk for ReviewService
+func (u *UserRepositoryImpl) GetBulkUserInfoByIds(ids []int64) (map[int64]*models.User, error) {
+	fmt.Println("Fetching users in UserRepository by IDs:", ids)
+	if len(ids) == 0 {
+		return map[int64]*models.User{}, nil
+	}
+	// Create a query with the appropriate number of placeholders
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+	query := fmt.Sprintf("SELECT id, username, email FROM users WHERE id IN (%s)", strings.Join(placeholders, ","))
+
+	rows, err := u.db.Query(query, args...)
+	if err != nil {
+		fmt.Println("Got error while fetching users by IDs", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	userMap := make(map[int64]*models.User)
+	for rows.Next() {
+		user := &models.User{}
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email); err != nil {
+			fmt.Println("Error scanning user:", err)
+			return nil, err
+		}
+		userMap[user.ID] = user
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Println("Error with rows:", err)
+		return nil, err
+	}
+
+	return userMap, nil
 }

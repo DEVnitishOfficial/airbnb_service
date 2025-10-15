@@ -1,6 +1,7 @@
 package services
 
 import (
+	. "ReviewService/api"
 	db "ReviewService/db/repositories"
 	"ReviewService/dto"
 	"ReviewService/models"
@@ -15,7 +16,7 @@ type ReviewService interface {
 	DeleteReview(id string) error
 	GetAllReviews() ([]*models.Review, error)
 	GetReviewsByUserId(userId string) ([]*models.Review, error)
-	GetReviewsByHotelId(hotelId string) ([]*models.Review, error)
+	GetReviewsByHotelId(hotelId string, authHeader string) ([]*models.ReviewWithUser, error)
 	GetReviewsByBookingId(bookingId string) ([]*models.Review, error)
 }
 
@@ -138,7 +139,7 @@ func (r *ReviewServiceImpl) GetReviewsByUserId(userId string) ([]*models.Review,
 	return reviews, nil
 }
 
-func (r *ReviewServiceImpl) GetReviewsByHotelId(hotelId string) ([]*models.Review, error) {
+func (r *ReviewServiceImpl) GetReviewsByHotelId(hotelId string, authHeader string) ([]*models.ReviewWithUser, error) {
 	fmt.Println("Fetching reviews by hotel ID in ReviewService")
 
 	hotelIdInt, err := strconv.ParseInt(hotelId, 10, 64)
@@ -152,7 +153,46 @@ func (r *ReviewServiceImpl) GetReviewsByHotelId(hotelId string) ([]*models.Revie
 		fmt.Println("Error fetching reviews by hotel ID:", err)
 		return nil, err
 	}
-	return reviews, nil
+	// Extract userIds
+	var userIds []int64
+	seen := make(map[int64]bool)
+	for _, rev := range reviews {
+		if !seen[rev.UserId] {
+			seen[rev.UserId] = true
+			userIds = append(userIds, rev.UserId)
+		}
+	}
+	fmt.Println("Extracted user IDs:", userIds)
+
+	// Call the user service
+	users, err := FetchUsersByIds(userIds, authHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("Fetched users:", users)
+
+	// Map user info by ID
+	userMap := make(map[int64]dto.UserDTO)
+	for _, user := range users {
+		userMap[user.Id] = user
+	}
+
+	// Combine responses into []*models.ReviewWithUser
+	var result []*models.ReviewWithUser
+	for _, rev := range reviews {
+		u := userMap[rev.UserId]
+		result = append(result, &models.ReviewWithUser{
+			UserId:   rev.UserId,
+			Username: u.UserName,
+			Email:    u.Email,
+			Comment:  rev.Comment,
+			Rating:   rev.Rating,
+			HotelId:  rev.HotelId,
+		})
+	}
+
+	return result, nil
 }
 
 func (r *ReviewServiceImpl) GetReviewsByBookingId(bookingId string) ([]*models.Review, error) {
