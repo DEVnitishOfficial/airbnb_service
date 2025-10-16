@@ -10,6 +10,7 @@ import (
 )
 
 func StartCron(svc services.ReviewBatchProcessor, mode string) {
+	// starts a new cron job with UTC timezone regardless of server timezone
 	c := cron.New(cron.WithLocation(time.UTC))
 
 	var schedule string
@@ -20,9 +21,13 @@ func StartCron(svc services.ReviewBatchProcessor, mode string) {
 	}
 
 	_, err := c.AddFunc(schedule, func() {
+		// create a context which will expire in 1 minute it avoids long running cron jobs
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
+		// ctx is a contex object, if we pass this context to any function then they must have to complete in a specified time.
+		// using cancel method we can cancel the context before the timeout expires.
+		defer cancel() // when function scope exit then it executes
 
+		// we pass ctx to ProcessPendingRatings i.e it must have to implement before one minute, otherwise any goroutine running this function will be aboreted
 		if err := svc.ProcessPendingRatings(ctx); err != nil {
 			log.Println("ProcessPendingRatings error:", err)
 		}

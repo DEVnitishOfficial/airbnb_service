@@ -57,8 +57,6 @@ func JWTAuthMiddleware(next http.Handler) http.Handler {
 
 		fmt.Println("Authenticated user ID:", int64(userId), "Email:", email)
 
-		r.Header.Set("Authorization", "Bearer "+token)
-
 		ctx := context.WithValue(r.Context(), "userID", strconv.FormatFloat(userId, 'f', 0, 64))
 		ctx = context.WithValue(ctx, "email", email)
 		next.ServeHTTP(w, r.WithContext(ctx))

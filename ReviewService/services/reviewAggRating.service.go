@@ -32,19 +32,28 @@ func NewReviewBatchProcessor(db *sql.DB, repo repositories.ReviewRepositoryAggRa
 
 func (s *ReviewBatchProcessorImpl) ProcessPendingRatings(ctx context.Context) error {
 	// acquire MySQL lock
+	// here got is a placeholder which either hold 0 or 1 after successful application level lock in a distributed system
 	var got sql.NullInt64
-	if err := s.db.QueryRowContext(ctx, "SELECT GET_LOCK(?, 1)", s.lockName).Scan(&got); err != nil {
-		return fmt.Errorf("GET_LOCK error: %w", err)
+	if err := s.db.QueryRowContext(ctx, "SELECT GET_LOCK(?, 1)", s.lockName).Scan(&got); err != nil { // 1 means waiting for 1sec to aquire lock then refuse
+		return fmt.Errorf("GET_LOCK error: %w", err) // GET_LOCK is an advisory or application which applied on instance of a db connection
 	}
 	if !got.Valid || got.Int64 != 1 {
 		log.Println("ProcessPendingRatings: another instance is already running")
 		return nil
 	}
+	// when the surrounding function here ProcessPendingRatings completes their execution then lock will be release
+	// here we have used context.Background because we want to release lock at any cost
+	// if we use ctx then if ctx timeout expires before releasing lock then lock will not be released and deadlock situation may occur
+	// so to avoid this situation we have used context.Background()
 	defer s.db.ExecContext(context.Background(), "SELECT RELEASE_LOCK(?)", s.lockName)
 
+	// here cutoff decides which reviews are eligible for processing
+	// inclusion : reviews which are created before or at cutoff time with is_synced = false will be included in this batch
+	// exclusion : reviews which are created after cutoff time will not included in this batch
 	cutoff := time.Now().UTC().Format("2006-01-02 15:04:05")
 	log.Printf("🕒 Running batch with cutoff=%s\n", cutoff)
 
+	// it fetches all unapplied aggregates i.e reviews which are not synced with hotel service yet
 	aggs, err := s.repo.FetchUnappliedAggregates(ctx, cutoff)
 	if err != nil {
 		return fmt.Errorf("fetch unapplied aggregates: %w", err)

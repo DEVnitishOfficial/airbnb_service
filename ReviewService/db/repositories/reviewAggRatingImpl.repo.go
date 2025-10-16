@@ -24,14 +24,14 @@ func (r *reviewRepositoryImpl) FetchUnappliedAggregates(ctx context.Context, cut
 		GROUP BY hotel_id
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, cutoff)
+	rows, err := r.db.QueryContext(ctx, query, cutoff) // QueryContext is used for reading large data sets when we use select query
 	if err != nil {
 		return nil, fmt.Errorf("query aggregates: %w", err)
 	}
-	defer rows.Close()
-
+	defer rows.Close() // ensure the cursor is closed after reading all data
+	// When a query returns a large result set, the database driver often holds an open network connection and an active cursor on the database server to stream the results one row at a time, that's why rows.Close() is important to release those resources.
 	var results []AggregatedRating
-	for rows.Next() {
+	for rows.Next() { // reading data from cursor one by one
 		var a AggregatedRating
 		var sum sql.NullFloat64
 		var cnt sql.NullInt64
