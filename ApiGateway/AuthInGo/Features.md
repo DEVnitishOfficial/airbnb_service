@@ -72,4 +72,32 @@ Visit your notion notes for this answer : https://www.notion.so/Why-you-choose-G
 	chiRouter.HandleFunc("/fakestoreService/*", utils.ProxyToService("http://fakestoreapi.in/", "/fakestoreService"))
 ```
 
+* Gateway--> gateway.go
+
+```go
+func NewGatewayRouter() http.Handler {
+	r := chi.NewRouter()
+
+	// Forward requests to HotelService
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/hotelService/*", utils.ProxyToService(
+		"http://localhost:3001", // Target service
+		"/hotelService",         // Prefix to strip
+	))
+
+	// Forward requests to BookingService
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/bookingService/*", utils.ProxyToService(
+		"http://localhost:3005",
+		"/bookingService",
+	))
+
+	// Forward requests to ReviewService
+	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/reviewService/*", utils.ProxyToService(
+		"http://localhost:8081",
+		"/reviewService",
+	))
+
+	return r
+}
+
+```
 

@@ -90,3 +90,12 @@ export type CreateBookingDTO = {
     createdAt         DateTime          @default(now())
     updatedAt         DateTime          @updatedAt
 
+* Implementd corner case like the user who has created booking is the same user who is confirming the bookings.
+
+**How we have implemented**
+
+* To identify the user who is currently confirming the booking is the same user who have created the booking then any how i have to extract the userId from the idempotency key.
+
+* if you see your booking table then there is a connection between the booking table and the idempotency table, in the idempotency table there is bookingId and inside the bookingId there is userId so joining the idempotency table and the booking table we can easily extract out the userId.
+
+* Now we have the userId extracted from the idempotencyKey, and we can extract the current user userId form the current login token and by comparing both if both are same it means the loggedIn user and the user who created this booking is same, so allow the booking confirmation. 

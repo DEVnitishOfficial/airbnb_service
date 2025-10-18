@@ -1,140 +1,157 @@
-If you make any changes inside the airbnb folder or in future if you want to add any service here then make sure first of all add you particulr service in the main repo like
-
-git add BookingService
-
-Till so far what we have Achieved in HotelService/BookingService/NotificationService
-
-# Hotel Service
-
-1. Configure ORM - sequelize.
-    * used mysql2 - driver liberary of mysql
-    * install sequelize-cli which generate following file
-        → config, model, migration, seeders
-        → config.json converted into config.ts
-        → define .sequelizerc file
-        → after writing model we generate hotel migration with up and down part
-        ► written the sql command to create table
-        ► After writing the sql command we move to the writing api calls
-
-2. NEXT STEP: WRITING END-TO-END API'S FOR HOTEL SERVICE LIKE
-    * written api in bottom-up fahion/approach
-    * Repository layer(needed dto layer as well) → Service layer → Controller layer → Router layer → from the router layer we are matching the url and perform the required or defiend action. 
-
-* Then we have written following api
-    i. createHotel
-    ii. getHotelById
-    iii. getAllHotel
-    iv. updateHotelById
-    v. softDeleteHotelById
-    vi. hardDeleteHotelById
-    vii. allSoftDeletedHotels
-    vii. restoreSoftDeletedHotelById
-
-# Booking Service
-
-1. Configuring ORM : Prisma
-     * at first we install the prisma
-     * connected to db using mysql connection string.
-     * then install prisma client → who interect with mysql db
-     * then defined prisma schema
-     * finally run the migration with "npx prisma migrate dev --name init"
-* Difference between prisma and sequelize
-    * in sequelize we define our model(like Hotel) by extending the sequelize Model
-    * in prisma we don't need to define the model manually instead
-         * when we run "npx prisma migrate" then automatically prisma read .env and schema.prisma file
-         * and generates the Prisma client in the node_modules folder, from here whatever types needed we can get easily.
-
-2. Create Booking with Idempotency
-    * The idea behind the idempotency were that if a user started transaction and that transaction has not completed yet due to some network issue or whaterver may be various reasons, then doesn't matter how many time they hit the same api we will not allow them to make any changes until a specific time(TTL), if in that given time booking not happen then we will discard the whole transaction/process and user can freshly start booking again.
-
-    * if user has already made successfull booking, still they are trying to make booking with the same userId and hotelId then we will send them a message that they have already created the booking with same userId and hotelId and prevent them from the double booking.
-        * Here for the time being i am considering the hotelId as room id because till now we don't have the room id and the start and the end date of a booking, so a user can't book the same room on the same day that they have already booked.
-
-**How we achieved idempotent api with handling concurrency** : 
-    * used uuid for idempotencykey generation(generated while creating booking asynchronously)
-    * used  redis, ioredis and redlock to acquire lock here(in redlock) we define the resource(on which we have to put lock) and ttl(how much time redis hold that lock on the given resource when ttl completes then lock released then other user can acquire lock on the resource.)
-    * Here redis and redlock ensure that no two user can lock the same resource on the same time.
-    * So in the above one we have solve concurrency problem(no two user on the same time create booking with the same resource) and make our api idempotent.
-
-**Solving concurrency in confirm Booking(Row level locking in mysql database)**
-        **Pessemistic lock, isolation level----> read committed**
-
-        ```ts
-export async function confirmBookingService(idempotencyKey: string) {
-    const idempotencyKeyData = await getIdemPotencyKey(idempotencyKey);
-    if (!idempotencyKeyData) {
-        throw new NotFoundError("Idempotency key not found");
-    }
-    if (idempotencyKeyData.finalized) {
-        throw new BadRequestError("Booking already finalized");
-    }
-    const booking = await confirmBooking(idempotencyKeyData.bookingId);
-    await finalizeIdempotencyKey(idempotencyKey);
-    return booking;
-
-```
-
-Problem : 
-
-Here in the confirmBooking the main problem were the two or more concurrent confirm booking request, suppose two request came concurrently to our server, now consider these two reqeust as two process that wants to execute in our single core machine,
-
-* So first request process our cpu and waiting for result because it's a asynchronours operation it will not wait for their result and again it will take the second request also it will be processed, suppose second request come fast and due to any network issue first process become delay so the second process proceed and they will confirm the booking and now suppose the first process also resolved and they came with the same idempotency key and trigger the confirmBooking which is already confirmed in the second reqeust, so it's a redundent work that we are doing and it may lead to problem if we are keeping boolean in our db if second request confirm the first one may cancel it.
-
-Solution : 
-            So clearly here we can see that the two transactions are reading the same data and trying to modify it, so it's a dirty read problem, to solve this problem mysql provide isolation level of read committed, using which we can put a lock(pessemistic lock) on row level of that idempotency key which it matching form the db.
-
-            With putting pessemistic lock on row level, we will also wrap all the operation in one single transaction like getIdemPotencyKeyWithLock, confirmBooking and finalizeIdempotencyKey these all are the single-single operation we wrap all thse operaiton in one single transaction so that if any of them failed all operation will be failed and then a fresh request will take lock on the same resource this helps in data consistency.
-
-            
-```ts
-            export async function getIdemPotencyKeyWithLock(tx: Prisma.TransactionClient, key: string) {
-    if (!isValidUUID(key)) {
-        throw new BadRequestError("Invalid idempotency key format");
-    }
-
-    const idempotencyKey: Array<IdempotencyKey> = await tx.$queryRaw(
-        Prisma.raw(`SELECT * FROM IdempotencyKey WHERE idemKey = '${key}' FOR UPDATE;`)
-    );
-
-    console.log("Idempotency key with lock:", idempotencyKey);
-
-    if (!idempotencyKey || idempotencyKey.length === 0) {
-        throw new BadRequestError("Idempotency key not found");
-    }
-
-    return idempotencyKey[0];
-}
-```
-
-# Notification service
-
-# Aggregate rating : 
-
-In this commit i have added the caculation of aggreagte rating of a particular hotel with cron job which in test mode calculate every 30 sec and in production env calculate hotel review hourly.
-
-and solve a bug which took more than 4 hours to match the time basically the mysql by default store time internally in UTC format but we can see them in IST(system) format, so the problem occur when we make query from my server to pickup the recent review which has is_synced false see the below query : 
-
-```go
-cutoff := time.Now().UTC()
-	log.Printf("ProcessPendingRatings: running cutoff=%s\n", cutoff.Format(time.RFC3339))
-
-rows, err := s.DB.QueryContext(ctx, `
-SELECT hotel_id, SUM(rating) AS total_rating, COUNT(*) AS cnt
-FROM reviews
-WHERE is_synced = FALSE AND created_at <= ?
-GROUP BY hotel_id
-`, cutoff)
-```
-
-I thought if it store it in the local time then make the cutoff call to local so i did cutoff := time.Now().Local() but it's also doesn't work because whenever we make querey our query is interecting with the stored type i.e the UTC internally, but it show us in localtime.
-
-So lastly i decide to make everything in UTC then i converted mysql to the UTC, now it's internally stores in utc and also show us in UTC and form server we make call in UTC so everything works smoothly now.
-
-if you want to check which timeZone use you mysql workbench you can run below command
-```sql
-SELECT @@global.time_zone, @@session.time_zone;
-```
-if it shows system means you are using the local time but if it show +00:00	+00:00 then you are using the UTC time.
 
 
+# **Airbnb Microservices – Core Features Summary**
 
+This document summarizes the core features and architecture of our Airbnb-style microservices platform.
+
+---
+
+## **1. API Gateway (Golang)**
+
+**Purpose:** The API Gateway acts as the **central entry point** for all requests to the microservices. It ensures **security, routing, and request management**.
+
+### **Key Features:**
+
+* **Central Authentication & Authorization:**
+
+  * Every request to a microservice passes through the gateway.
+  * Users must be authenticated via **JWT tokens**.
+  * **Role-Based Access Control (RBAC)** ensures only users with appropriate roles (`user` or `admin`) can access certain routes.
+  * This protects internal microservices from unauthorized access.
+
+* **Reverse Proxy:**
+
+  * The gateway forwards requests to the correct microservice, hiding the internal endpoints from clients.
+  * For example, requests to the BookingService, HotelService, or ReviewService all pass through the gateway first.
+
+* **Rate Limiting:**
+
+  * Requests are limited to **5 per minute per IP** to prevent abuse and ensure fair usage.
+
+* **Internal Microservice Communication:**
+
+  * Two way to communicate with different microservice 
+
+    -  I. Synchronous Communication (Request/Response) 
+        * Here we have two options
+
+            i. RESTful APIs -->> use http/https protocol(**used in airbnb**)
+
+            ii. gRPC (Remote Procedure Call) --->> use HTTP/2 with Protocol Buffers (Protobuf) serialization.
+    
+    - II. Asynchronous Communication (Message-Based)
+        * Here also we have two options 
+
+            i. Message Queue method ---->> use AMQP, or Advanced Message Queuing Protocol(RabbitMQ, AWS SQS)**used io-redis and bullmq**
+
+            ii. Publish/Subscribe (Event-Driven) method ----> example Apache Kafka, Redis Pub/Sub
+
+  * The gateway can also handle internal API calls between microservices.
+  * It authenticates these calls and aggregates data when needed (e.g., combining user info from AuthService with ReviewService).
+
+**In short:** The gateway acts as a **security checkpoint, traffic manager, and data aggregator** for all microservices.
+
+---
+
+## **2. Booking Service**
+
+**Purpose:** Manages hotel bookings and ensures consistency across the system.
+
+### **Core Logic:**
+
+* Receives booking requests and validates **room availability** via the HotelService(*sync rest api call to hotel microservice*).
+
+* Uses **Redis + RedLock** for distributed locking to prevent multiple users from booking the same room simultaneously.--->> (*await redlock.acquire([bookingResource], ttl);*) ---->bookingREsource has roomId on which lock is put for 60sec after that lock is released.
+
+* Bookings remain in a **pending state** until confirmed.
+
+* After booking creation bookingId is set into the rooms due to which no other user can book that room, but it valid only for 10 mins if the user who created the booking not confirm then when time expires a cronJob runs every minutes who check is there any booking whose status is pending and expiredAt property is less than the current time, then update the booking status as expired and call the hotelService(route /release) to remove the bookingId from the room(make rooms available for other).
+
+* Implementd corner case like the user who has created booking is the same user who is confirming the bookings.
+
+
+### **Booking Confirmation:**
+
+* Uses **database transactions** to maintain data consistency:
+
+  1. Checks if the operation was already processed using an **IdempotencyKey**.
+  2. Updates the booking status to `CONFIRM`.
+  3. Marks the IdempotencyKey as finalized to prevent double bookings.
+
+**Key Tables:**
+
+* `Booking` – stores booking info (user, hotel, dates, guests, status).
+* `IdempotencyKey` – ensures operations like booking or payment are **idempotent**.
+
+---
+
+## **3. Hotel Service**
+
+**Purpose:** Handles hotel and room management.
+
+### **Key Features:**
+
+1. **Hotel CRUD Operations:** Create, read, update, and delete hotel records.
+2. **Room Management:**
+
+   * Check room availability for a given date range.
+   * Update room booking IDs when a room is booked.
+   * Release rooms for expired or unconfirmed bookings (avoiding “ghost bookings”).
+3. **Room Generation & Scheduling:**
+
+   * Bulk creation of rooms using **Redis queues and workers**.
+   * Scheduled tasks (cron jobs) extend room availability to maintain a fixed booking window (e.g., 90 days).
+
+---
+
+## **4. Notification Service**
+
+**Purpose:** Sends email notifications to users.
+
+### **Key Features:**
+
+* **Email Queueing:**
+
+  * When an email needs to be sent, it is added to a **Redis queue** with details like recipient, template, and parameters.
+* **Workers:** Background workers process the queue and send emails using **nodemailer** with **Handlebars templates** for formatting.
+
+---
+
+## **5. Review Service (Async Rating Calculation)**
+
+**Purpose:** Manages user reviews and calculates hotel ratings.
+
+### **Workflow:**
+
+* A **cron job** periodically aggregates new reviews to calculate hotel ratings.
+* Combines review data with **user info from AuthService** to present full review details.
+* Updates the HotelService with the **new average rating**.
+
+**Note:** Internal API calls are authenticated through the API Gateway using JWT tokens.
+
+---
+
+## **6. Cross-Cutting Concepts**
+
+* **Idempotency:** Ensures operations like bookings and payments are **not duplicated**.
+* **Transactions:** Database operations are executed together to maintain consistency.
+* **Redis + RedLock:** Used for **distributed locking** to avoid conflicts in concurrent operations.
+* **Cron Jobs:** Scheduled tasks for room availability, cleanup of expired bookings, and asynchronous rating calculations.
+* **DTOs & Repositories:** Clean separation of logic layers for **maintainable code**.
+
+---
+
+## **7. Tech Stack & Design Choices**
+
+* **API Gateway:** Golang (fast, concurrent, strongly typed).
+* **Microservices:** Node.js + TypeScript for business logic.
+* **Database:** Sequelize, Prisma + SQL.
+* **Async Jobs:** Redis + BullMQ for email sending and background processing.
+* **Security:** JWT + RBAC for authentication and authorization.
+
+---
+
+✅ **Summary:**
+This architecture ensures that **all microservices are secured, scalable, and maintainable**. The **API Gateway** centralizes authentication, routing, and request management, while each microservice focuses on its domain logic.
+
+---
