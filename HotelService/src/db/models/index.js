@@ -1,5 +1,5 @@
 'use strict';
-
+import './associations'
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');

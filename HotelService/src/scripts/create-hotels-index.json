@@ -1,0 +1,62 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 1,
+    "analysis": {
+      "filter": {
+        "autocomplete_filter": {
+          "type": "edge_ngram",
+          "min_gram": 2,
+          "max_gram": 20
+        }
+      },
+      "analyzer": {
+        "autocomplete": {
+          "tokenizer": "standard",
+          "filter": ["lowercase", "autocomplete_filter"]
+        },
+        "folding": {
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "id": { "type": "keyword" },
+      "name": {
+        "type": "text",
+        "analyzer": "folding",
+        "fields": {
+          "autocomplete": {
+            "type": "text",
+            "analyzer": "autocomplete",
+            "search_analyzer": "folding"
+          },
+          "keyword": { "type": "keyword", "ignore_above": 256 }
+        }
+      },
+      "address": { "type": "text", "analyzer": "folding" },
+      "location": { "type": "keyword" },
+      "geo": { "type": "geo_point" },
+      "rating": { "type": "float" },
+      "rating_count": { "type": "integer" },
+      "categories": { "type": "keyword" },
+      "rooms": {
+        "type": "nested",
+        "properties": {
+          "room_id": { "type": "keyword" },
+          "room_category_id": { "type": "integer" },
+          "room_type": { "type": "keyword" },
+          "price": { "type": "double" },
+          "date_of_availability": { "type": "date" },
+          "booked": { "type": "boolean" }
+        }
+      },
+      "min_price": { "type": "double" },
+      "max_price": { "type": "double" },
+      "updated_at": { "type": "date" }
+    }
+  }
+}

@@ -13,3 +13,10 @@ export type updateHotelDto = {
     rating?: number;
     ratingCount?: number;
 }
+
+export type HotelRecord = {
+    id: number;
+    name: string;
+    address: string;
+    location: string;
+}

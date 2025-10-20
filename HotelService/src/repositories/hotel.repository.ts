@@ -2,6 +2,8 @@
 
 import logger from "../config/logger.config";
 import Hotel from "../db/models/hotel";
+import Room from "../db/models/room";
+import RoomCategory from "../db/models/roomCategory";
 import { NotFoundError } from "../utils/errors/app.error";
 import BaseRepository from "./base.repository";
 
@@ -38,5 +40,14 @@ export class HotelRepository extends BaseRepository<Hotel> { // here we are pass
         await hotel.save(); // Save the changes to the database
         logger.info(`Hotel soft deleted successfully, ${hotel.id}`);
         return hotel;
+    }
+
+    async getHotelWithRooms(hotelId: number) {
+        console.log('fetching hotel with rooms info>>>',hotelId);
+    const hotel = await this.model.findOne({
+        where: { id: hotelId, deletedAt: null },
+    });
+
+    return hotel;
     }
 }

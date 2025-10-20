@@ -8,6 +8,7 @@ import { attachCorrelationIdMiddleware } from './middlewares/correlation.middlew
 import sequelize from './db/models/sequelize';
 import { setupRoomGenerationWorker } from './processors/roomGeneration.processors';
 import { startRoomSchedulerCronJob } from './scheduler/roomScheduler';
+import hotelIndexingProcessor from './processors/hotelIndex.processor';
 
 
 const app = express();
@@ -27,7 +28,7 @@ app.listen(serverConfig.PORT, async () => {
     await sequelize.authenticate(); // this will check the connection to the database and if the connection is successful then it will return a promise otherwise it will throw an error.
     logger.info("Database connected successfully");
     setupRoomGenerationWorker();
-
+    hotelIndexingProcessor;
     startRoomSchedulerCronJob();
     logger.info('Room availability extension scheduler initialized');
 
