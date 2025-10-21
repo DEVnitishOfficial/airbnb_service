@@ -41,6 +41,7 @@ export class ElasticsearchRepository {
   }
 
   async search(body: any) {
+    console.log('Searching hotels with body:', body);
     return esClient.search({ index: INDEX, body });
   }
 }

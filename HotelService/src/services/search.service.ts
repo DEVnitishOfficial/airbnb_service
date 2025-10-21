@@ -3,58 +3,68 @@
 import { ElasticsearchRepository } from "../repositories/elasticsearch.repository";
 
 export class SearchService {
-  constructor(private esRepo = new ElasticsearchRepository()) {}
+  constructor(private esRepo = new ElasticsearchRepository()) { }
 
-  async searchHotels(params : any) {
-    const { q, location, minPrice, maxPrice, checkIn, checkOut, page = 0, size = 20 } = params;
+  async searchHotels(params: { 
+    name?: string; 
+    address?: string; 
+    location?: string;
+    page?: number;
+    size?: number;
+  }) {
+    const { name, address, location } = params;
     const must = [];
     const filter = [];
 
-    if (q) {
+    if (name || address) {
       must.push({
         multi_match: {
-          query: q,
-          fields: ["name^3", "name.autocomplete^4", "address", "categories"],
-          fuzziness: "AUTO"
-        }
+          query: name || address,
+          fields: ["name^3", "address^2"],
+          fuzziness: "AUTO",
+        },
       });
     } else {
-      must.push({ match_all: {} });
+      must.push({ match_all: {} }); // If no name or address, match all documents
     }
 
-    if (location) filter.push({ term: { location } });
-
-    if (minPrice || maxPrice) {
-      const range: any = {};
-      if (minPrice) range.gte = Number(minPrice);
-      if (maxPrice) range.lte = Number(maxPrice);
-      filter.push({ range: { min_price: range } });
-    }
-
-    if (checkIn && checkOut) {
+    // Filter by location if provided
+    if (location) {
       filter.push({
-        nested: {
-          path: "rooms",
-          query: {
-            bool: {
-              must: [
-                { range: { "rooms.date_of_availability": { gte: checkIn, lte: checkOut } } },
-                { term: { "rooms.booked": false } }
-              ]
-            }
-          }
-        }
+        match: {
+          location: {
+            query: location,
+            fuzziness: "AUTO",
+          },
+        },
       });
     }
 
+  // Pagination control
+  const page = Number(params.page) || 1;
+  const size = Number(params.size) || 5;
+
+    //  Construct ES query body
     const body = {
       query: { bool: { must, filter } },
-      sort: [{ _score: { order: "desc" } }, { min_price: { order: "asc" } }],
+      sort: [{ _score: { order: "desc" } }],
       from: page * size,
-      size
+      size,
     };
 
-    const res = await this.esRepo.search(body);
-    return res;
+    // Call repository search method
+      const res = await this.esRepo.search(body);
+
+      const hotels = res.hits.hits.map((hit: any) => hit._source);
+
+      const total = typeof res.hits.total === "number" ? res.hits.total : res.hits.total?.value ?? 0;
+
+      return {
+        total,
+        took: res?.took, // time taken by ES to execute the query
+        page,
+        size,
+        hotels,
+      };
   }
 }
