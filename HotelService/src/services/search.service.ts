@@ -6,15 +6,24 @@ export class SearchService {
   constructor(private esRepo = new ElasticsearchRepository()) { }
 
   async searchHotels(params: { 
+    id? : string | number;
     name?: string; 
     address?: string; 
     location?: string;
     page?: number;
     size?: number;
   }) {
-    const { name, address, location } = params;
+    const { id, name, address, location } = params;
     const must = [];
     const filter = [];
+
+    if(id){
+      must.push({
+        match: {
+          id: id
+        }
+      });
+    }
 
     if (name || address) {
       must.push({
@@ -41,8 +50,8 @@ export class SearchService {
     }
 
   // Pagination control
-  const page = Number(params.page) || 1;
-  const size = Number(params.size) || 5;
+  const page = Number(params.page) || 0;
+  const size = Number(params.size) || 20;
 
     //  Construct ES query body
     const body = {

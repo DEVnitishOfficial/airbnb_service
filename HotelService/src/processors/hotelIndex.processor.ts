@@ -4,7 +4,7 @@ import { ElasticsearchRepository } from "../repositories/elasticsearch.repositor
 import { getRedisConnObject } from "../config/redis.config";
 import { transformHotelToESDoc } from "../utils/transformers/hotel.transformer";
 import { HotelRepository } from "../repositories/hotel.repository";
-import { HOTEL_DELETION_PAYLOAD, HOTEL_INDEXING_PAYLOAD } from "../producers/hotelIndex.producer";
+import { HOTEL_DELETION_PAYLOAD, HOTEL_INDEXING_PAYLOAD, HOTEL_UPDATE_PAYLOAD } from "../producers/hotelIndex.producer";
 
 const hotelIndexingProcessor = new Worker(HOTEL_INDEXING_QUEUE, async (job: Job) => {
 
@@ -15,27 +15,37 @@ const hotelIndexingProcessor = new Worker(HOTEL_INDEXING_QUEUE, async (job: Job)
 
   if (job.name === HOTEL_INDEXING_PAYLOAD) {
     console.log("Processing hotel indexing job");
-    const  hotelId  = job.data;
-    console.log(' see the hotelId coming from redis job queue', hotelId);
-    console.log(' see the hotelId coming from redis job queue number>>>', Number(hotelId));
-    const hotel = await hotelRepo.getHotelWithRooms(Number(hotelId));
+    const hotelId = job.data;
+    const hotel = await hotelRepo.getHotelById(Number(hotelId));
 
     console.log("log the coming hotel response>>>>", hotel);
 
     if (!hotel) {
-      await esRepo.deleteHotel(hotelId).catch(() => {
-        console.error(`Failed to delete hotel ${hotelId} from Elasticsearch`);
-      });
+      console.log(`Hotel with id ${hotelId} not found, skipping indexing.`);
       return;
     }
 
     const doc = transformHotelToESDoc(hotel);
     await esRepo.indexHotel(doc);
     console.log(`Hotel ${hotelId} indexed successfully in Elasticsearch`);
-    
+
+  } else if (job.name === HOTEL_UPDATE_PAYLOAD) {
+    console.log("Processing hotel update job");
+    const hotelId = job.data;
+    const hotel = await hotelRepo.getHotelById(Number(hotelId));
+    if (!hotel) {
+      console.log(`Hotel with id ${hotelId} not found, skipping update.`);
+      return;
+    }
+    const doc = transformHotelToESDoc(hotel);
+    await esRepo.updateHotel(hotelId, doc);
+    console.log(`Hotel ${hotelId} updated successfully in Elasticsearch`);
+
+
   } else if (job.name === HOTEL_DELETION_PAYLOAD) {
-    const { hotelId } = job.data;
-    await new ElasticsearchRepository().deleteHotel(hotelId);
+    console.log("Processing hotel deletion job");
+    const hotelId = job.data;
+    await esRepo.deleteHotel(hotelId);
   }
 }, {
   connection: getRedisConnObject()

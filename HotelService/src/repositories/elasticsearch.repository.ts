@@ -25,6 +25,7 @@ export class ElasticsearchRepository {
   }
 
   async deleteHotel(id: string | number) {
+    console.log(`Deleting hotel document with id: ${id}`);
     return esClient.delete({
       index: INDEX,
       id: String(id)

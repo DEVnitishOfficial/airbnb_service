@@ -42,7 +42,7 @@ export class HotelRepository extends BaseRepository<Hotel> { // here we are pass
         return hotel;
     }
 
-    async getHotelWithRooms(hotelId: number) {
+    async getHotelById(hotelId: number) {
         console.log('fetching hotel with rooms info>>>',hotelId);
     const hotel = await this.model.findOne({
         where: { id: hotelId, deletedAt: null },

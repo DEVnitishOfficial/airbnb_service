@@ -7,6 +7,7 @@ export async function searchHotelHandler(req: Request, res: Response, next: Next
 
   const hotelSearchService = new SearchService();
   const searchPayload = {
+    id : req.query.id as any,
     name: req.query.name as string,
     address: req.query.address as string,
     location: req.query.location as string,
