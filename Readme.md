@@ -102,6 +102,20 @@ This document summarizes the core features and architecture of our Airbnb-style 
    * Bulk creation of rooms using **Redis queues and workers**.
    * Scheduled tasks (cron jobs) extend room availability to maintain a fixed booking window (e.g., 90 days).
 
+4. **Elasticsearch Integration**
+
+* Hotel Indexing:
+
+      * On hotel creation, a Redis job queues the hotel ID → worker fetches details → transforms → indexes in Elasticsearch.
+
+      * Supports create, update, delete syncing with MySQL.
+
+* Hotel Search:
+
+      * /search route builds a dynamic ES query using filters (id, name, address, location).
+
+      * Calls ES client (esClient.search) → returns relevant results after filtering the meta data.
+
 ---
 
 ## **4. Notification Service**

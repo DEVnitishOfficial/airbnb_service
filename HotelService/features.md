@@ -168,3 +168,38 @@ processors>roomGeneration.processors.ts ----->>> generateRoomsService(paylod)
 * In this way our cronJob working fine and creating rooms depend on the cronJob setting.
 
 
+## 5. Elastic search
+- here we have main two features : 
+i. index the hotel when new hotel is created, in the elastic search.
+ii. hotel searching
+
+### i. Indexing newly created hotel in the ES
+
+* START --> routers--> v1---> hotel.router.ts--->createHotelHandler--->addHotelIndexInESJobToQueue
+
+* addHotelIndexInESJobToQueue, it's a producer who takes the created hotelId and store it inside the redis, in a queue named "HOTEL_INDEXING_QUEUE" with a payload named "HOTEL_INDEXING_PAYLOAD", here producer works ended.
+
+* Since inside the redis we have the hotelId, so now processor/consumer/worker takes that payload by matching the same queue name and the payload name.
+
+* Now we find the hotel by that extracted id from the redis, once we get the hotel detail like their name, address and location then i call method transformHotelToESDoc(hotel).
+
+* I keep transformHotelToESDoc(hotel) method because if in future we have to add more detail then we can transform the hotelData here like the rooms detail, geo location, price etc.
+
+* we call indexHotel(doc) method from ElasticsearchRepository and here we have esClient which is coming from lib folder where i have defined my esClient liberary by importing {Client} from "@elastic/elasticsearch" npm package.
+
+* In this way i have indexed all the hotel that are created and saved in the mysql db.
+
+* In the similir fashion update and delete hotel is working in elastic search
+
+### ii. Searching existing hotel from Elastic Search
+
+* START : routers--> v1---> hotel.router.ts--->/search--->searchHotelHandler
+
+* In searchHotelHandler whatever request is coming like id, name address, location accumulate all of this in a variable and pass into the searchHotels() methods.
+
+* In searchHotels() methods we extract all those parameter and create two array [must] and [filter] in which we fill the coming parameter and create elastic search query and store this object in a variable name "body" and passs it to the esRepo.search(body) method.
+
+* From search method we call our elasticSearch client esClient.search({ index: INDEX, body }) method in which we pass the index name and the search query stored in body, and it returns the matching hotels.
+
+* In the returned hotels there are a lot of meta data so we filter it and only send the relevent data to the client.
+

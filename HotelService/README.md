@@ -888,4 +888,195 @@ These all method we can re-use it because the repository layer nothing have to d
 **So our next goal is to execute the CRON job ---> for this we will use node-cron** 
 
 
+## 🧭 **Elasticsearch Integration – Hotel Search System**
+
+### 📖 **Overview**
+
+Elasticsearch is a **powerful distributed search and analytics engine** built on top of Apache Lucene.
+It allows you to **store, search, and analyze large volumes of data quickly** — even if the data is partially matched, misspelled, or spread across multiple fields.
+
+In this microservice, **Elasticsearch is integrated to provide advanced hotel search functionality** for the Airbnb-like system.
+It enables users to search for hotels efficiently using fields like:
+
+* **Hotel Name**
+* **Address**
+* **Location**
+
+and supports **fuzzy matching**, **partial search**, and **pagination** for better scalability and performance.
+
+---
+
+### 🚀 **Why We Use Elasticsearch**
+
+In a system like Airbnb, users often type incomplete or misspelled names (e.g., “Chnai” instead of “Chennai”).
+A traditional SQL-based query (`LIKE '%name%'`) performs poorly with large datasets and cannot handle typos.
+
+Elasticsearch solves this by:
+
+* Tokenizing and indexing text fields (like name, address, location)
+* Allowing **fuzzy matching** (handles misspellings)
+* Supporting **multi-field relevance search**
+* Offering **high performance full-text search**
+* Providing **ranking (_score)** to sort the most relevant results
+
+---
+
+### ⚙️ **How It Works – High-Level Flow**
+
+#### 🏨 1. **When a new hotel is created**
+
+1. The HotelService first stores the hotel details in the MySQL database.
+2. Then it **triggers a background job** using **BullMQ + Redis Queue**.
+3. This job sends the hotel’s data to the **Elasticsearch Worker**.
+4. The Worker fetches the full hotel details (including rooms and room categories) from the DB.
+5. It transforms this data into an **Elasticsearch-friendly document**.
+6. Finally, it indexes (stores) the document in the **Elasticsearch index (`hotels`)**.
+
+```mermaid
+graph LR
+A[Create Hotel API] --> B[Save in MySQL]
+B --> C[Push Job to Redis Queue]
+C --> D[Elasticsearch Worker]
+D --> E[Index Document in ES Index "hotels"]
+```
+
+---
+
+#### 🔍 2. **When a user searches for hotels**
+
+1. The client (e.g., Postman or frontend app) calls `/api/v1/hotel/search?name="Crowne%20Plaza%20Greater`.
+2. The `SearchController` passes the search payload (name, address, location) to the `SearchService`.
+3. The service constructs an **Elasticsearch query** using:
+
+   * `multi_match` for searching across name and address
+   * `match` for location
+   * `fuzziness: "AUTO"` to handle typos
+   * Pagination using `from` and `size`
+4. Elasticsearch returns a ranked list of matched hotels.
+5. The response is formatted and sent back to the client.
+
+---
+
+### 🧩 **Core Components**
+
+| Component                           | Description                                                           |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| **ElasticsearchRepository**         | Handles indexing, deleting, and searching documents in Elasticsearch. |
+| **hotelIndexingProcessor (Worker)** | Background worker that listens to Redis Queue and indexes hotel data. |
+| **SearchService**                   | Builds search queries and executes them in Elasticsearch.             |
+| **transformHotelToESDoc()**         | Converts Sequelize model data into Elasticsearch-friendly structure.  |
+| **hotelIndex.queue.ts**             | Defines queue configuration for indexing jobs.                        |
+| **hotelIndex.producer.ts**          | Pushes hotel indexing/deletion jobs to Redis.                         |
+
+---
+
+### 🧠 **Important Elasticsearch Concepts Used**
+
+| Concept               | Description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
+| **Index**             | Equivalent to a table in SQL. Here we use the `hotels` index.            |
+| **Document**          | Equivalent to a row. Each hotel record is one document.                  |
+| **Field**             | Equivalent to a column (e.g., `name`, `address`, `location`).            |
+| **Analyzer**          | Breaks down text into tokens to make search faster and more flexible.    |
+| **Fuzziness**         | Allows typo-tolerant search, e.g., searching "Chenai" matches “Chennai”. |
+| **Multi-Match Query** | Searches across multiple fields like name and address simultaneously.    |
+| **_score**            | Relevance score assigned by Elasticsearch to rank search results.        |
+| **Pagination**        | Uses `from` and `size` parameters to fetch limited results efficiently.  |
+
+---
+
+### 🧱 **Example Query**
+
+```json
+{
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "multi_match": {
+            "query": "Chennai Marina",
+            "fields": ["name^3", "address^2"],
+            "fuzziness": "AUTO"
+          }
+        }
+      ],
+      "filter": [
+        {
+          "match": { "location": "Chennai" }
+        }
+      ]
+    }
+  },
+  "from": 0,
+  "size": 5,
+  "sort": [
+    { "_score": { "order": "desc" } }
+  ]
+}
+```
+
+---
+
+### 📦 **Example Response**
+
+```json
+{
+  "success": true,
+  "message": "Hotels fetched successfully",
+  "data": {
+    "total": 11,
+    "took": 36,
+    "page": 1,
+    "size": 5,
+    "hotels": [
+      {
+        "id": "92",
+        "name": "Chennai Marina View",
+        "address": "Kamaraj Salai, Opp. Marina Beach, Mylapore, Chennai",
+        "location": "Chennai"
+      }
+    ]
+  }
+}
+```
+
+🕐 **`took`:** Time (in ms) Elasticsearch took to execute the search query.
+
+---
+
+### ⚡ **Indexing Flow Summary**
+
+| Step | Action               | Component                              |
+| ---- | -------------------- | -------------------------------------- |
+| 1    | Hotel created in DB  | `createHotelService()`                 |
+| 2    | Add job to Redis     | `hotelIndexProducer.addJob()`          |
+| 3    | Worker consumes job  | `hotelIndexingProcessor`               |
+| 4    | Transform hotel data | `transformHotelToESDoc()`              |
+| 5    | Index in ES          | `ElasticsearchRepository.indexHotel()` |
+| 6    | Search hotels        | `SearchService.searchHotels()`         |
+
+---
+
+### 🧰 **Environment Variables**
+
+| Variable             | Description                  | Example                  |
+| -------------------- | ---------------------------- | ------------------------ |
+| `ES_NODE`            | Elasticsearch Node URL       | `https://localhost:9200` |
+| `ES_USERNAME`        | Elasticsearch Username       | `elastic`                |
+| `ES_PASSWORD`        | Elasticsearch Password       | `mypassword`             |
+| `ES_HOTEL_INDEX`     | Name of index for hotels     | `hotels`                 |
+| `ES_BULK_CHUNK_SIZE` | Chunk size for bulk indexing | `500`                    |
+
+---
+
+### ✅ **Best Practices Followed**
+
+* Asynchronous indexing using **Redis + BullMQ** (to avoid blocking HTTP requests)
+* **Error handling & retries** in worker
+* **Fuzzy & partial search** for flexible results
+* **Pagination support** for scalable performance
+* **Secure connection** to Elasticsearch with credentials
+* **Separation of concerns** (Controller → Service → Repository → Worker)
+---
+
 

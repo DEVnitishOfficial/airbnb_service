@@ -34,7 +34,7 @@ export class SearchService {
         },
       });
     } else {
-      must.push({ match_all: {} }); // If no name or address, match all documents
+      must.push({ match_all: {} }); // If no id, name, address, and location match all documents
     }
 
     // Filter by location if provided
