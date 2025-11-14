@@ -14,6 +14,70 @@ Visit your notion notes for this answer : https://www.notion.so/Why-you-choose-G
 
     iii. When anyone wants to check their profile they must have either user or admin role other wise it will say unauthorised user.
 
+---
+
+## 🔐 JWT Signing Algorithms Overview
+
+* // don't worrry about the header it's automatically generated when you add diff algo in the options field like below :
+
+// jwt.sign(payload, secret, { algorithm: "RS256", expiresIn: "1h" });
+
+
+When working with **JWT (JSON Web Tokens)**, the way we **sign and verify** tokens depends on the type of algorithm used.
+There are mainly **two types of algorithms** for signing JWTs:
+
+---
+
+### 🧩 1. Symmetric Algorithms — **HMAC (HS256, HS384, HS512)**
+
+* Hash-based Message Authentication Code(HMAC)
+* Uses **one single shared secret key** for both **signing** and **verification**.
+* The **same key** is used by whoever creates the token and whoever verifies it.
+* ✅ **Fast** and efficient
+* ⚠️ **Less secure** in distributed environments because the same secret must be shared across services.
+
+**Example Use Case:**
+
+> Best for **Monolithic applications**, where the same server handles both token generation and verification.
+
+---
+
+### 🔑 2. Asymmetric Algorithms — **RSA (RS256, RS384, RS512)** or **ECDSA (ES256)**
+
+* The acronym RSA stands for Rivest, Shamir, Adleman, the three inventors who first publicly described the algorithm in 1977.
+
+* Uses **two keys**:
+
+  * **Private key** → used for signing the token
+  * **Public key** → used for verifying the token
+* ✅ **More secure**, since only the private key needs to be protected
+* ⚠️ **Slightly slower** and **computationally more expensive**
+
+**Example Use Case:**
+
+> Best for **Microservices or Distributed systems**, where one service (e.g., API Gateway) signs the token, and other services verify it using the public key.
+
+---
+
+## 🏗️ Recommended Algorithms by Architecture
+
+| **Architecture**                    | **Recommended Algorithm**            | **Why**                                                                                                                                                                                                                        |
+| ----------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Monolith (Single Server)**        | **HMAC (HS256)**                     | Simple, fast, and sufficient. Since only one server signs and verifies, a shared secret key is perfectly acceptable.                                                                                                           |
+| **Microservices / Distributed API** | **RSA (RS256)** or **ECDSA (ES256)** | Essential for distributed systems. The API Gateway signs the token with a private key, and all downstream microservices verify it with the public key. This allows secure verification without sharing the secret signing key. |
+
+---
+
+### 🧠 In Simple Terms
+
+* **HMAC (HS256)** → One key for everything → fast but less secure if shared.
+* **RSA / ECDSA (RS256 / ES256)** → Two keys (private + public) → safer but slower.
+* Choose **HMAC** for simple single-server setups, and **RSA/ECDSA** for distributed systems or microservices.
+
+---
+
+
+
     iv. Here we have implemented RBAC(Role based access control) and total 5 tables which is as follows :
         a. user
         b. role
@@ -43,61 +107,116 @@ Visit your notion notes for this answer : https://www.notion.so/Why-you-choose-G
 
 * Implemented rate limiting middleware on the basis of ip address in one minute there will be max 5 req and then it will be blocked until time completes one minutes.
 
-### Added Reverse proxy 
+* In golang there is a package named "rate package" available on github which take the ip, time and the limit as per the given time.
 
-* to check reverseProxy paste the below url in the postman
-	// http://localhost:3002/fakestoreService/api/products/category
+* we can extract ip from the req body in node.js ver simple (req.ip) and in golang ----> ip, _, err := net.SplitHostPort(r.RemoteAddr)
 
-* let's understand how it works.
+* In node js there is npm package named express-rate-limit which take the time in ms(windowMs) and limit, and as a middleware we can put it before any handler.
 
-  * suppose we want to make request on fakestore api  on url : https://fakestoreapi.in/api/products/category
+Absolutely ✅ — here’s a **clean 50-line summary** version of your full write-up.
+It keeps all **core ideas, technical reasoning, and interview-useful points** while removing long explanations.
+You can easily revise and recall this before interviews 👇
 
-  * Suppose from postman you are making request on url : http://localhost:3002/fakestoreService/api/products/category
+---
 
-  * Behind the scene working of apiGateway
+# 🔁 **Reverse Proxy in API Gateway – Summary**
 
-  * to achieve this functionality we have defined a ProxyToService function which take two parameter 
-			1. The(targetBaseUrl) base URL on which api gateway will going to make call
-			2. Second one is pathPrefix, on the basis of which we remove previous of this url including this as well 
+1. The **API Gateway** acts as an intermediary between clients and internal microservices.
 
-			For example suppose you have complete url : http://localhost:3002/fakestoreService/api/products/category
+2. When a request hits the gateway, it’s forwarded to the correct target service.
 
-			and "pathPrefix" is fakestoreService then there is a method TrimPrefix on go inbuilt strings, so using this method it remove the path prefix and return a stripped path like this one is stripped path : /api/products/category
+3. Example routing:
 
-			* Finally here we combine the targetBaseUrl + stripped path which becomes something like this one : http://fakestoreapi.in/ + /api/products/category
-				= http://fakestoreapi.in/api/products/category
+   * `/hotelService` → `http://localhost:3001`
+   * `/bookingService` → `http://localhost:3005`
+   * `/reviewService` → `http://localhost:8081`
 
+4. Implemented via a helper function **`ProxyToService`**.
 
-```go  used in router.go
-	chiRouter.HandleFunc("/fakestoreService/*", utils.ProxyToService("http://fakestoreapi.in/", "/fakestoreService"))
+5. `ProxyToService(targetBaseUrl, pathPrefix)` returns an `http.HandlerFunc`.
+
+6. It performs **reverse proxying** — forwarding and rewriting requests.
+
+7. The target URL is parsed using `url.Parse(targetBaseUrl)` (validates RFC 3986).
+
+8. Go’s standard package `net/http/httputil` provides `NewSingleHostReverseProxy`.
+
+9. This proxy rewrites the incoming request → sets target **scheme**, **host**, **path**, and **query**.
+
+10. Example: Incoming `/hotelService/api/v1/allHotels` → routed to `/api/v1/allHotels` on target.
+
+11. Internally, a **Director function** modifies the request before forwarding.
+
+12. Director updates the request’s `URL`, merges query params, and preserves structure.
+
+13. The proxy then calls `ServeHTTP(w, r)` to forward the modified request.
+
+14. When more control is needed (e.g., modify headers), a custom `ReverseProxy` is created.
+
+15. The `Rewrite` hook (`ProxyRequest.SetURL(target)`) allows header/cookie manipulation.
+
+16. Example: Add `X-User-ID` header from request context before forwarding.
+
+17. The proxy chain:
+    **Client → Gateway → Reverse Proxy → Target Microservice.**
+
+18. Benefits: central routing, authentication, logging, header injection, and API version control.
+
+19. In short steps:
+
+    1. Parse target URL
+    2. Create reverse proxy
+    3. Rewrite request (scheme, host, path, query)
+    4. Add headers (userID, correlationID)
+    5. Forward to service
+
+---
+
+## ⚙️ **Equivalent Implementation in Node.js**
+
+20. In Node.js, use **Express.js** + **http-proxy-middleware** package.
+21. It performs the same as Go’s `httputil.NewSingleHostReverseProxy`.
+22. Example route:
+
+```ts
+app.use('/hotelService', createProxyMiddleware({
+  target: 'http://localhost:3001',
+  pathRewrite: { '^/hotelService': '' },
+  changeOrigin: true,
+}));
 ```
 
-* Gateway--> gateway.go
+23. `pathRewrite` → removes prefix like `/hotelService`.
 
-```go
-func NewGatewayRouter() http.Handler {
-	r := chi.NewRouter()
+24. `onProxyReq` → modify request headers before sending to backend.
 
-	// Forward requests to HotelService
-	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/hotelService/*", utils.ProxyToService(
-		"http://localhost:3001", // Target service
-		"/hotelService",         // Prefix to strip
-	))
+25. `onError` → handle backend service or connection failures.
 
-	// Forward requests to BookingService
-	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/bookingService/*", utils.ProxyToService(
-		"http://localhost:3005",
-		"/bookingService",
-	))
+26. Node’s proxy middleware supports logging, rate limiting, and middleware chaining easily.
 
-	// Forward requests to ReviewService
-	r.With(middlewares.JWTAuthMiddleware, middlewares.RequireAnyRole("user", "admin")).HandleFunc("/reviewService/*", utils.ProxyToService(
-		"http://localhost:8081",
-		"/reviewService",
-	))
+27. Go gives lower-level control, Node.js offers flexibility and faster iteration.
 
-	return r
-}
+---
 
-```
+## 🧩 **Go vs Node.js Summary Table**
 
+| Concept        | Golang                               | Node.js                               |
+| -------------- | ------------------------------------ | ------------------------------------- |
+| Framework      | `net/http`                           | `Express.js`                          |
+| Proxy Library  | `httputil.NewSingleHostReverseProxy` | `http-proxy-middleware`               |
+| Path Rewrite   | Manual                               | `pathRewrite` option                  |
+| Header Edit    | Director function                    | `onProxyReq` hook                     |
+| Error Handling | Custom ServeHTTP                     | Built-in callbacks                    |
+| Performance    | Faster                               | More flexible                         |
+| Example Tools  | Built-in                             | `express-gateway`, `morgan`, `helmet` |
+
+---
+
+## 🧠 **Interview Summary Answer (20-sec Pitch)**
+
+> “In Go, I implemented reverse proxying using `httputil.NewSingleHostReverseProxy`.
+> It rewrites incoming requests, strips path prefixes, and forwards them to internal services, adding headers like userID from context.
+> If I had to build the same in Node.js, I’d use `Express` with `http-proxy-middleware`, which offers similar path rewriting, header injection, and error handling features.
+> Both follow the same reverse proxy pattern — Go gives fine control, Node provides middleware simplicity.”
+
+---

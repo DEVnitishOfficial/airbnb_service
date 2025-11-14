@@ -22,6 +22,8 @@ function loadEnv(){
 
 loadEnv()
 
+console.log('see my env>>>>',process.env.PORT)
+
 export const serverConfig:ServerConfig = {
     PORT: Number(process.env.PORT) || 3002,
     REDIS_HOST: process.env.REDIS_HOST || 'localhost',

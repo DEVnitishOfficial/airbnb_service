@@ -615,3 +615,204 @@ Ans : if we have checkInDate and checkOutDate but don't have the bookingId in th
     here booking service will make an api call to the hotelService to see if any rooms are available for a date range or not, and then according to the return set of value we will create the bookings.
 
 # Till so far we don't exposed any api to find the roomCategoryId and dateRange so in the HotelService i will work to expose that api
+
+# How we handled concurrency and avoid double booking.
+
+## 🧩 The Context (from your code)
+
+You wrote:
+
+```ts
+await redlock.acquire([bookingResource], ttl);
+```
+
+* `bookingResource` → something like `"booking:101,102,103"`
+  (a key representing rooms 101–103)
+* `ttl` → the **time-to-live**, e.g. 10 seconds or 5 seconds.
+
+This line says:
+
+> “Lock these rooms for the next X milliseconds, so no other process can book them at the same time.”
+
+---
+
+## 🚦 Why You Need Locking
+
+Imagine two users try to book the **same room** at exactly the same time.
+
+Without locking:
+
+* Both see the room is available.
+* Both create a booking → **double booking bug** 😱
+
+With locking:
+
+* The **first** process acquires the lock.
+* The **second** process fails to acquire the lock and must wait or retry.
+
+So, locking = **safe concurrency handling**.
+
+---
+
+## 🔐 What Is Redlock?
+
+`Redlock` is a **distributed lock algorithm** built on top of **Redis**.
+
+Redis is **single-threaded**, and operations like `SET` with `NX` and `PX` options are **atomic**, meaning:
+
+> Either the key is set if it doesn’t exist, or it fails — no in-between.
+
+That’s why Redis is often used for locking.
+
+The **Redlock algorithm** (developed by Salvatore Sanfilippo, the creator of Redis) extends this idea to **multiple Redis instances** for **high availability**.
+
+---
+
+## 🧠 How Redlock Works Internally
+
+Here’s what happens inside when you call:
+
+```ts
+await redlock.acquire([bookingResource], ttl);
+```
+
+### Step 1. Generate a Unique Lock ID
+
+Redlock generates a unique random value for this lock, like:
+
+```
+lock_id = "6f9e-342a-abc1"
+```
+
+---
+
+### Step 2. Try to Acquire Lock on Multiple Redis Nodes
+
+If you’re using multiple Redis servers (say 3 or 5 for redundancy),
+it sends this command to **each node**:
+
+```bash
+SET booking:101,102,103 lock_id NX PX ttl
+```
+
+* `NX` → set key only if it doesn’t exist
+* `PX ttl` → expire automatically after `ttl` ms
+* `lock_id` → unique random value (so only the locker can later release it)
+
+If the key already exists → lock acquisition fails on that node.
+
+---
+
+### Step 3. Majority Consensus
+
+Redlock needs to **successfully acquire the lock** on a **majority of Redis nodes** (e.g. 3 out of 5) within a small time window.
+
+If it succeeds → lock is considered **acquired**.
+If it fails → it immediately releases any partial locks.
+
+---
+
+### Step 4. TTL (Time-to-Live) Expiry
+
+The `ttl` ensures that:
+
+* If a process **crashes** or **forgets** to release the lock, it will **auto-expire**.
+* After expiry, another process can acquire the same lock.
+
+Example:
+
+```ts
+ttl = 5000 // 5 seconds
+```
+
+→ Lock automatically expires in 5 seconds if not released earlier.
+
+---
+
+### Step 5. Release (Unlock)
+
+When your booking completes successfully, Redlock releases the lock:
+
+```bash
+DEL booking:101,102,103
+```
+
+But it first checks if the **lock ID matches** the one that acquired it.
+This prevents **accidental unlocks** from other processes.
+
+---
+
+## ⚔️ How Concurrency Is Prevented
+
+Let’s take two users trying to book the same room:
+
+| Step | User A                                          | User B                                         |
+| ---- | ----------------------------------------------- | ---------------------------------------------- |
+| 1    | Calls `redlock.acquire(["booking:101"], 5000)`  | Calls `redlock.acquire(["booking:101"], 5000)` |
+| 2    | Redis key `booking:101` is free → lock acquired | Redis key `booking:101` already locked → fails |
+| 3    | A creates booking safely                        | B gets error or retries after TTL expires      |
+
+Result:
+✅ Only one booking succeeds → concurrency handled.
+
+---
+
+## 🧮 Algorithm Summary
+
+| Step | Action                                  | Guarantee                 |
+| ---- | --------------------------------------- | ------------------------- |
+| 1    | `SET resource random_value NX PX ttl`   | Atomic lock creation      |
+| 2    | Must succeed on majority of Redis nodes | Distributed safety        |
+| 3    | Record current time, check for drift    | Prevent slow network race |
+| 4    | Use `DEL` with value check              | Safe unlock               |
+| 5    | TTL expiry auto-cleans stale locks      | Prevent deadlocks         |
+
+---
+
+## ⚙️ Real-World Example in Your Code
+
+When this line runs:
+
+```ts
+await redlock.acquire([bookingResource], ttl);
+```
+
+It guarantees that:
+
+* Those room IDs (101, 102, etc.) are locked in Redis.
+* Only one booking process can modify them.
+* If something goes wrong, the lock expires after `ttl` milliseconds.
+* Your system avoids **race conditions** and **duplicate bookings**.
+
+---
+
+## ✅ Best Practices
+
+1. **Keep TTL short** — just long enough to complete the operation.
+2. **Always release lock** after success or failure.
+3. **Handle `LockError`** → means another process already holds it.
+4. **Use `try...finally`** to ensure release:
+
+   ```ts
+   const lock = await redlock.acquire([bookingResource], ttl);
+   try {
+       // critical section
+   } finally {
+       await lock.release();
+   }
+   ```
+5. **Use multiple Redis instances** (3–5) for true distributed reliability.
+
+---
+
+## 🧠 TL;DR Summary
+
+| Concept                | Description                                                              |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **Redlock**            | A distributed locking algorithm using Redis                              |
+| **Goal**               | Prevent multiple processes from modifying the same resource concurrently |
+| **How**                | Uses atomic `SET NX PX ttl` on multiple Redis nodes                      |
+| **TTL**                | Auto-expires lock if process crashes                                     |
+| **Concurrency Safety** | Only one process gets the lock → no double booking                       |
+
+---

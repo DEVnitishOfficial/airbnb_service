@@ -1,4 +1,3 @@
-// src/services/search.service.ts
 
 import { ElasticsearchRepository } from "../repositories/elasticsearch.repository";
 

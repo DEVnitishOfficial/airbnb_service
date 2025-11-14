@@ -16,7 +16,7 @@
 
 * Hotel creation is very simple, we follow router-->controller--->service--->repository stracture.
 
-* take input according to dto and created hotel.
+* take input according to dto and created hotel. 
 <pre>
     name: string;
     address: string;

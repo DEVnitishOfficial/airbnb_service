@@ -92,7 +92,8 @@ export async function extendCategoryAvailability(categoryData: { roomCategoryId:
         };
 
         // Add job to queue
-        await addRoomGenerationJobToQueue(jobData);
+        // here we are using a fixed correlationId for scheduler jobs i.e 'scheduler-room-availability-extension'
+        await addRoomGenerationJobToQueue(jobData, 'scheduler-room-availability-extension');
         
         logger.info(`Added room generation job for category ${roomCategoryId} on ${nextDate.toISOString()}`);
 

@@ -122,7 +122,7 @@ export async function processDateBatch(roomCategory: RoomCategory, startDate: Da
         endDate
     );
 
-    console.log('see the existings room',existingRooms);
+    console.log('see the existings room',existingRooms); // if no rooms available comes empty array []
 
     // put them in a Set for quick lookup
     const existingDates = new Set(

@@ -370,6 +370,249 @@ data type incompitable
 int then you will get incompitable error.
 
 
+# Detailed features of API-Gateway and how to use in nodejs 
+
+
+
+# 🔁 Reverse Proxy in API Gateway (Golang)
+
+In our **API Gateway**, we act as an intermediary between the client and the internal microservices (like hotel, booking, and review services).
+Whenever a request hits the gateway, it forwards that request to the correct underlying service — this behavior is implemented using a **Reverse Proxy**.
+
+---
+
+## ⚙️ Gateway Routing Setup
+
+We have defined routing rules in the gateway to forward incoming requests:
+
+| Incoming Request                       | Routed To (Target Service) |
+| -------------------------------------- | -------------------------- |
+| `http://localhost:3002/hotelService`   | `http://localhost:3001`    |
+| `http://localhost:3002/bookingService` | `http://localhost:3005`    |
+| `http://localhost:3002/reviewService`  | `http://localhost:8081`    |
+
+So for example, a request from a client to
+
+```
+http://localhost:3002/hotelService/api/v1/allHotels
+```
+
+will be automatically forwarded by the gateway to
+
+```
+http://localhost:3001/api/v1/allHotels
+```
+
+---
+
+## 🧩 The `ProxyToService` Utility Function
+
+We created a helper function named `ProxyToService` inside the **utils** folder.
+This function takes two parameters:
+
+1. **`targetBaseUrl`** → The actual backend service URL that the gateway should forward the request to.
+2. **`pathPrefix`** → The prefix to strip from the incoming URL path before forwarding the request.
+
+It then returns an `http.HandlerFunc` that acts as a **reverse proxy**.
+
+---
+
+## 🧠 How the Reverse Proxy Works Internally
+
+### 1️⃣ Parsing the Target URL
+
+The provided `targetBaseUrl` (like `"http://localhost:3001"`) is first parsed using:
+
+```go
+url.Parse(targetBaseUrl)
+```
+
+This ensures the target URL conforms to proper URL syntax (as per **RFC 3986**).
+Invalid URLs like `"http:///bad-format"` would fail here.
+
+---
+
+### 2️⃣ Using `http/httputil` – Built-in Reverse Proxy
+
+The Go standard library provides a powerful utility in the `net/http/httputil` package called:
+
+```go
+httputil.NewSingleHostReverseProxy(target *url.URL)
+```
+
+This function takes a **parsed target URL** and returns a ready-to-use reverse proxy that automatically rewrites requests to the target host.
+
+---
+
+### 3️⃣ Example of How It Works
+
+Let’s say the incoming request is:
+
+```
+http://localhost:3001/api/v1/allHotels?city=paris&limit=10
+```
+
+Internally, Go parses it like this:
+
+```text
+target.Scheme   → "http"
+target.Host     → "localhost:3001"
+target.Path     → "/api/v1/allHotels"
+target.RawQuery → "city=paris&limit=10"
+```
+
+The proxy then rewrites and forwards the request to this target.
+Under the hood, it behaves like this:
+
+```go
+func NewSingleHostReverseProxy(target *url.URL) *ReverseProxy {
+	director := func(req *http.Request) {
+		rewriteRequestURL(req, target)
+	}
+	return &ReverseProxy{Director: director}
+}
+
+func rewriteRequestURL(req *http.Request, target *url.URL) {
+	targetQuery := target.RawQuery
+	req.URL.Scheme = target.Scheme
+	req.URL.Host = target.Host
+	req.URL.Path, req.URL.RawPath = joinURLPath(target, req.URL)
+
+	if targetQuery == "" || req.URL.RawQuery == "" {
+		req.URL.RawQuery = targetQuery + req.URL.RawQuery
+	} else {
+		req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+	}
+}
+```
+
+So essentially, the **director** function modifies the incoming request so that:
+
+* The **scheme** and **host** point to the target service.
+* The **path** and **query** are correctly merged.
+
+---
+
+## 🧱 When You Need More Control
+
+The `NewSingleHostReverseProxy` method doesn’t modify request headers by default.
+If you want to control or rewrite headers, you can create a custom `ReverseProxy` directly and use the `Rewrite` hook:
+
+```go
+proxy := &httputil.ReverseProxy{
+    Rewrite: func(r *httputil.ProxyRequest) {
+        r.SetURL(target)      // Set target URL
+        r.Out.Host = r.In.Host // Optional: preserve original host header
+    },
+}
+```
+
+This allows you to modify request headers, cookies, or any other fields before forwarding.
+
+---
+
+## 🔄 What is a Director Function?
+
+In the Go `httputil.ReverseProxy`, the **Director** is a function that modifies the incoming request before it is sent to the target backend.
+Think of it as a middleware step that **rewrites** the request.
+
+---
+
+## 🪄 Implementation Steps in Our Gateway
+
+Inside our handler, here’s what happens step by step:
+
+1. Extract the original path:
+
+   ```go
+   originalPath := r.URL.Path
+   ```
+
+2. Strip the predefined prefix (`pathPrefix`) from the path.
+
+3. Set the **target host** and **modified path** in the forwarded request.
+
+4. Add any custom headers — for example, attaching the `userId` from request context:
+
+   ```go
+   if userId, ok := r.Context().Value("userID").(string); ok {
+       r.Header.Set("X-User-ID", userId)
+   }
+   ```
+
+5. Finally, the proxy handles the request:
+
+   ```go
+   proxy.ServeHTTP(w, r)
+   ```
+
+---
+
+## 🧠 In Short
+
+| Step                           | Description                                      |
+| ------------------------------ | ------------------------------------------------ |
+| **1. Parse target URL**        | Validate and convert string URL → `*url.URL`     |
+| **2. Create Reverse Proxy**    | Use `httputil.NewSingleHostReverseProxy(target)` |
+| **3. Rewrite Request**         | Director modifies scheme, host, path, and query  |
+| **4. Add Custom Headers**      | Example: Add user ID or trace ID                 |
+| **5. Forward to Microservice** | Proxy sends modified request to target service   |
+
+
+
+### 🧭 Summary
+
+* **Reverse Proxy** allows your API Gateway to forward requests to internal microservices.
+* **`httputil.NewSingleHostReverseProxy()`** handles most of the rewriting automatically.
+* You can customize headers or modify logic using the **`Rewrite`** or **`Director`** functions.
+* Prefix stripping and context propagation (like `userID`) make the request routing flexible and secure.
+
+
+## 🧩 **Reverse Proxy: Go vs Node.js – Quick Comparison**
+
+| Concept                   | **Golang Implementation**                                     | **Node.js Implementation**                                      |
+| ------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| **Framework / Core Tool** | `net/http` package                                            | `Express.js` (most common web framework)                        |
+| **Reverse Proxy Library** | `httputil.NewSingleHostReverseProxy`                          | `http-proxy-middleware` (built on `http-proxy`)                 |
+| **Purpose**               | Forwards incoming requests to target microservices            | Same — acts as gateway forwarding requests to target services   |
+| **Path Rewrite**          | Manual logic (`strings.TrimPrefix` etc.)                      | Built-in option → `pathRewrite`                                 |
+| **Header Manipulation**   | Done in Director function (e.g., `r.Header.Set("X-User-ID")`) | Done in `onProxyReq` hook (`proxyReq.setHeader()`)              |
+| **Target URL Handling**   | `url.Parse()` + validation                                    | Direct string URL in config                                     |
+| **Error Handling**        | Custom `ServeHTTP` implementation                             | `onError` callback in middleware                                |
+| **Middleware Support**    | Need to build manually                                        | Express middlewares available (auth, rate limit, logging, etc.) |
+| **Performance**           | Faster (compiled language)                                    | Slightly slower but more flexible for rapid development         |
+| **Example Package Names** | Built-in (`net/http`, `httputil`)                             | `http-proxy-middleware`, `http-proxy`, `express-gateway`        |
+
+---
+
+## 🧠 **How to Explain This in an Interview (Sample Answer)**
+
+> “In my Go-based API Gateway, I used the `httputil.NewSingleHostReverseProxy` from the standard library. It rewrites incoming requests and routes them to target microservices after parsing and validating the target URL.
+>
+> If I had to build the same in Node.js with TypeScript, I’d use **Express.js** along with the **http-proxy-middleware** package — which provides similar functionality to Go’s `ReverseProxy`.
+>
+> It allows path rewriting, custom header injection, and error handling out of the box. I can define routes like `/hotelService → http://localhost:3001` and `/bookingService → http://localhost:3005` easily with only a few lines of code.
+>
+> Essentially, Go’s `httputil` reverse proxy and Node’s `http-proxy-middleware` solve the same problem — Go gives you more control at a lower level, while Node.js provides faster iteration with middleware flexibility.”
+
+---
+
+## ⚙️ **Node.js Key Packages to Mention**
+
+| Package                   | Use Case                                  |
+| ------------------------- | ----------------------------------------- |
+| **http-proxy-middleware** | Most common reverse proxy for Express     |
+| **http-proxy**            | Low-level proxy library used by the above |
+| **express-gateway**       | Full-featured API Gateway framework       |
+| **morgan / winston**      | Logging incoming and outgoing requests    |
+| **express-rate-limit**    | To add rate limiting before proxying      |
+| **helmet / cors**         | For securing gateway routes               |
+
+---
+
+
+
+
 * Task to implement
 1. Try to implement an email confirmation mechanism for new user signup
 2. On a new User signup, people should get automatically role of 'user'

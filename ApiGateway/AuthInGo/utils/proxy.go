@@ -31,7 +31,7 @@ func ProxyToService(targetBaseUrl string, pathPrefix string) http.HandlerFunc {
 		fmt.Println("Stripped Path:", strippedPath)
 
 		r.URL.Host = target.Host
-		r.URL.Path = target.Path + strippedPath
+		r.URL.Path = target.Path + strippedPath // here target.Path is usually empty unless targetBaseUrl has some path
 
 		r.Host = target.Host
 

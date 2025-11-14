@@ -53,7 +53,7 @@ This document summarizes the core features and architecture of our Airbnb-style 
 
 ---
 
-## **2. Booking Service**
+## **2. Booking Service(Typescript)**
 
 **Purpose:** Manages hotel bookings and ensures consistency across the system.
 
@@ -85,7 +85,7 @@ This document summarizes the core features and architecture of our Airbnb-style 
 
 ---
 
-## **3. Hotel Service**
+## **3. Hotel Service(Typescript)**
 
 **Purpose:** Handles hotel and room management.
 
@@ -95,7 +95,7 @@ This document summarizes the core features and architecture of our Airbnb-style 
 2. **Room Management:**
 
    * Check room availability for a given date range.
-   * Update room booking IDs when a room is booked.
+   * Update booking IDs in rooms when a room is booked.
    * Release rooms for expired or unconfirmed bookings (avoiding “ghost bookings”).
 3. **Room Generation & Scheduling:**
 
@@ -103,6 +103,8 @@ This document summarizes the core features and architecture of our Airbnb-style 
    * Scheduled tasks (cron jobs) extend room availability to maintain a fixed booking window (e.g., 90 days).
 
 4. **Elasticsearch Integration**
+
+* Elasticsearch is a **powerful distributed search and analytics engine** built on top of Apache Lucene.
 
 * Hotel Indexing:
 
@@ -118,7 +120,7 @@ This document summarizes the core features and architecture of our Airbnb-style 
 
 ---
 
-## **4. Notification Service**
+## **4. Notification Service(Typescript)**
 
 **Purpose:** Sends email notifications to users.
 
@@ -169,3 +171,4 @@ This document summarizes the core features and architecture of our Airbnb-style 
 This architecture ensures that **all microservices are secured, scalable, and maintainable**. The **API Gateway** centralizes authentication, routing, and request management, while each microservice focuses on its domain logic.
 
 ---
+
